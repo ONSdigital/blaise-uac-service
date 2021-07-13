@@ -17,10 +17,18 @@ const (
 	MAXCONCURRENT = 500
 )
 
+//Generate mocks by running "go generate ./..."
+//go:generate mockery --name Datastore
 type Datastore interface {
 	Mutate(context.Context, ...*datastore.Mutation) ([]*datastore.Key, error)
 	GetAll(context.Context, *datastore.Query, interface{}) ([]*datastore.Key, error)
 	Close() error
+}
+
+//Generate mocks by running "go generate ./..."
+//go:generate mockery --name UacGeneratorInterface
+type UacGeneratorInterface interface {
+	Generate(string, []string) error
 }
 
 type UacGenerator struct {

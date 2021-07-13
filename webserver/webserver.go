@@ -7,8 +7,8 @@ import (
 )
 
 type Server struct {
-	BlaiseRestApi *blaiserestapi.BlaiseRestApi
-	UacGenerator  *uacgenerator.UacGenerator
+	BlaiseRestApi blaiserestapi.BlaiseRestApiInterface
+	UacGenerator  uacgenerator.UacGeneratorInterface
 }
 
 func (server *Server) SetupRouter() *gin.Engine {

@@ -9,3 +9,8 @@ Blaise UAC service (BUS) is a used to generate and validate UACs for blaise web.
 ```sh
 go test ./...
 ```
+
+TODO:
+- return generated uacs
+- get errors out of uac generation goroutines
+- get caseId and instrument name from UAC

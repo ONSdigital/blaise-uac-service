@@ -8,6 +8,7 @@ require (
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/googleapis/gax-go v1.0.3 // indirect
 	github.com/jarcoal/httpmock v1.0.8
+	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.14.0
 	github.com/stretchr/testify v1.6.1
