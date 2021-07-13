@@ -1,0 +1,57 @@
+package uacgenerator
+
+import (
+	"context"
+	"fmt"
+	"math/rand"
+	"strings"
+
+	"cloud.google.com/go/datastore"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+const uacKind = "uac"
+
+type Datastore interface {
+	Mutate(context.Context, ...*datastore.Mutation) ([]*datastore.Key, error)
+	GetAll(context.Context, *datastore.Query, interface{}) ([]*datastore.Key, error)
+	Close() error
+}
+
+type UacGenerator struct {
+	DatastoreClient Datastore
+	Context         context.Context
+}
+
+type UacInfo struct {
+	InstrumentName string         `json:"instrument_name" datastore:"instrument_name"`
+	CaseID         string         `json:"case_id" datastore:"case_id"`
+	UAC            *datastore.Key `json:"-" datastore:"__key__"`
+}
+
+func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt int) (string, error) {
+	if attempt >= 10 {
+		return "", fmt.Errorf("Could not generate a unique UAC in 10 attempts")
+	}
+	uac := fmt.Sprintf("%012d", rand.Int63n(1e12))
+	// Cannot workout how the hell to mock/ test this :(
+	newUACMutation := datastore.NewInsert(uacKey(uac), &UacInfo{
+		InstrumentName: strings.ToLower(instrumentName),
+		CaseID:         strings.ToLower(caseID),
+	})
+	_, err := uacGenerator.DatastoreClient.Mutate(uacGenerator.Context, newUACMutation)
+	if err != nil {
+		if statusErr, ok := status.FromError(err); ok {
+			if statusErr.Code() == codes.AlreadyExists {
+				return uacGenerator.NewUac(instrumentName, caseID, attempt+1)
+			}
+		}
+		return "", err
+	}
+	return uac, nil
+}
+
+func uacKey(key string) *datastore.Key {
+	return datastore.NameKey(uacKind, key, nil)
+}
