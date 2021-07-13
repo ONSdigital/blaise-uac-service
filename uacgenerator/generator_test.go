@@ -253,3 +253,54 @@ var _ = Describe("Generate", func() {
 		})
 	})
 })
+
+var _ = Describe("GetAllUacs", func() {
+	var (
+		uacGenerator = &uacgenerator.UacGenerator{
+			Context: context.Background(),
+		}
+		instrumentName = "lolcat"
+		mockDatastore  *mocks.Datastore
+	)
+
+	BeforeEach(func() {
+		mockDatastore = &mocks.Datastore{}
+
+		uacGenerator.DatastoreClient = mockDatastore
+
+		mockDatastore.On("GetAll",
+			uacGenerator.Context,
+			mock.AnythingOfTypeArgument("*datastore.Query"),
+			mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+		).Once().Return(
+			func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
+				uacInfos := dst.(*[]*uacgenerator.UacInfo)
+				key := uacGenerator.UacKey("foobar")
+				*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+					InstrumentName: instrumentName,
+					CaseID:         "12343",
+					UAC:            key,
+				})
+				key2 := uacGenerator.UacKey("foobar2")
+				*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+					InstrumentName: instrumentName,
+					CaseID:         "56764",
+					UAC:            key2,
+				})
+				return []*datastore.Key{key, key2}
+			},
+			func(ctx context.Context, qry *datastore.Query, dst interface{}) error {
+				return nil
+			})
+	})
+
+	It("returns a map of all uacs with info", func() {
+		uacs, err := uacGenerator.GetAllUacs(instrumentName)
+		Expect(uacs).To(HaveLen(2))
+		Expect(uacs["foobar"].InstrumentName).To(Equal(instrumentName))
+		Expect(uacs["foobar"].CaseID).To(Equal("12343"))
+		Expect(uacs["foobar2"].InstrumentName).To(Equal(instrumentName))
+		Expect(uacs["foobar2"].CaseID).To(Equal("56764"))
+		Expect(err).To(BeNil())
+	})
+})

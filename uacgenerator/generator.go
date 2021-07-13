@@ -29,6 +29,7 @@ type Datastore interface {
 //go:generate mockery --name UacGeneratorInterface
 type UacGeneratorInterface interface {
 	Generate(string, []string) error
+	GetAllUacs(string) (map[string]*UacInfo, error)
 }
 
 type UacGenerator struct {
@@ -110,8 +111,26 @@ func (uacGenerator *UacGenerator) Generate(instrumentName string, caseIDs []stri
 	return nil
 }
 
+func (uacGenerator *UacGenerator) GetAllUacs(instrumentName string) (map[string]*UacInfo, error) {
+	var uacInfos []*UacInfo
+	_, err := uacGenerator.DatastoreClient.GetAll(uacGenerator.Context, uacGenerator.instrumentQuery(instrumentName), &uacInfos)
+	if err != nil {
+		return nil, err
+	}
+	uacs := make(map[string]*UacInfo)
+	for _, uacInfo := range uacInfos {
+		uacs[uacInfo.UAC.Name] = uacInfo
+	}
+	return uacs, nil
+}
+
 func (uacGenerator *UacGenerator) instrumentCaseQuery(instrumentName, caseID string) *datastore.Query {
 	query := datastore.NewQuery(UACKIND)
 	query = query.Filter("instrument_name =", strings.ToLower(instrumentName))
 	return query.Filter("case_id = ", strings.ToLower(caseID))
+}
+
+func (uacGenerator *UacGenerator) instrumentQuery(instrumentName string) *datastore.Query {
+	query := datastore.NewQuery(UACKIND)
+	return query.Filter("instrument_name =", strings.ToLower(instrumentName))
 }
