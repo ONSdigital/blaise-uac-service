@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"time"
 
+	"cloud.google.com/go/datastore"
 	"github.com/ONSDigital/blaise-uac-service/uacgenerator"
 	"github.com/ONSDigital/blaise-uac-service/uacgenerator/mocks"
 	. "github.com/onsi/ginkgo"
@@ -104,6 +105,63 @@ var _ = Describe("NewUac", func() {
 			Expect(uac).To(Equal(""))
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 10)
 			Expect(err).To(MatchError("Could not generate a unique UAC in 10 attempts"))
+		})
+	})
+})
+
+var _ = Describe("UacKey", func() {
+	var uacGenerator = &uacgenerator.UacGenerator{}
+
+	It("Generates a datastore named key of the correct kind", func() {
+		key := uacGenerator.UacKey("test123")
+		Expect(key.Kind).To(Equal(uacgenerator.UACKIND))
+		Expect(key.Name).To(Equal("test123"))
+	})
+})
+
+var _ = Describe("UacExistsForCase", func() {
+	var (
+		uacGenerator   = &uacgenerator.UacGenerator{}
+		ctx            = context.Background()
+		instrumentName = "lolcat"
+		caseID         = "74628568"
+	)
+
+	Context("When a UAC already exists", func() {
+		BeforeEach(func() {
+			mockDatastore := &mocks.Datastore{}
+			uacGenerator.DatastoreClient = mockDatastore
+			uacGenerator.Context = ctx
+			mockDatastore.On("GetAll",
+				ctx,
+				mock.AnythingOfTypeArgument("*datastore.Query"),
+				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+			).Return([]*datastore.Key{datastore.IncompleteKey("foo", nil)}, nil)
+		})
+
+		It("returns true", func() {
+			exists, err := uacGenerator.UacExistsForCase(instrumentName, caseID)
+			Expect(exists).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+	})
+
+	Context("When a UAC does not exist", func() {
+		BeforeEach(func() {
+			mockDatastore := &mocks.Datastore{}
+			uacGenerator.DatastoreClient = mockDatastore
+			uacGenerator.Context = ctx
+			mockDatastore.On("GetAll",
+				ctx,
+				mock.AnythingOfTypeArgument("*datastore.Query"),
+				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+			).Return(nil, nil)
+		})
+
+		It("returns false", func() {
+			exists, err := uacGenerator.UacExistsForCase(instrumentName, caseID)
+			Expect(exists).To(BeFalse())
+			Expect(err).To(BeNil())
 		})
 	})
 })

@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const uacKind = "uac"
+const UACKIND = "uac"
 
 type Datastore interface {
 	Mutate(context.Context, ...*datastore.Mutation) ([]*datastore.Key, error)
@@ -36,7 +36,7 @@ func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt 
 	}
 	uac := fmt.Sprintf("%012d", rand.Int63n(1e12))
 	// Cannot workout how the hell to mock/ test this :(
-	newUACMutation := datastore.NewInsert(uacKey(uac), &UacInfo{
+	newUACMutation := datastore.NewInsert(uacGenerator.UacKey(uac), &UacInfo{
 		InstrumentName: strings.ToLower(instrumentName),
 		CaseID:         strings.ToLower(caseID),
 	})
@@ -52,6 +52,28 @@ func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt 
 	return uac, nil
 }
 
-func uacKey(key string) *datastore.Key {
-	return datastore.NameKey(uacKind, key, nil)
+func (uacGenerator *UacGenerator) UacKey(key string) *datastore.Key {
+	return datastore.NameKey(UACKIND, key, nil)
+}
+
+func (uacGenerator *UacGenerator) UacExistsForCase(instrumentName, caseID string) (bool, error) {
+	var existingUACs []*UacInfo
+	existingUACKeys, err := uacGenerator.DatastoreClient.GetAll(
+		uacGenerator.Context,
+		uacGenerator.instrumentCaseQuery(instrumentName, caseID),
+		&existingUACs,
+	)
+	if err != nil {
+		return false, err
+	}
+	if len(existingUACKeys) >= 1 {
+		return true, nil
+	}
+	return false, nil
+}
+
+func (uacGenerator *UacGenerator) instrumentCaseQuery(instrumentName, caseID string) *datastore.Query {
+	query := datastore.NewQuery(UACKIND)
+	query = query.Filter("instrument_name =", strings.ToLower(instrumentName))
+	return query.Filter("case_id = ", strings.ToLower(caseID))
 }
