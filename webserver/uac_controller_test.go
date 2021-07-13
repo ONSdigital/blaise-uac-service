@@ -12,12 +12,13 @@ import (
 
 var _ = Describe("UAC Controller", func() {
 	var (
-		httpRouter *gin.Engine
+		httpRouter   *gin.Engine
+		uacControler *webserver.UacController
 	)
 
 	BeforeEach(func() {
 		httpRouter = gin.Default()
-		webserver.UACRoutes(httpRouter)
+		uacControler.AddRoutes(httpRouter)
 	})
 
 	Describe("/uacs/generate/:instrumentName", func() {

@@ -7,11 +7,15 @@ import (
 	"strings"
 
 	"cloud.google.com/go/datastore"
+	"github.com/zenthangplus/goccm"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-const UACKIND = "uac"
+const (
+	UACKIND       = "uac"
+	MAXCONCURRENT = 500
+)
 
 type Datastore interface {
 	Mutate(context.Context, ...*datastore.Mutation) ([]*datastore.Key, error)
@@ -70,6 +74,32 @@ func (uacGenerator *UacGenerator) UacExistsForCase(instrumentName, caseID string
 		return true, nil
 	}
 	return false, nil
+}
+
+func (uacGenerator *UacGenerator) GenerateUniqueUac(instrumentName, caseID string, concurrent goccm.ConcurrencyManager) error {
+	defer concurrent.Done()
+	exists, err := uacGenerator.UacExistsForCase(instrumentName, caseID)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		_, err := uacGenerator.NewUac(instrumentName, caseID, 0)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (uacGenerator *UacGenerator) Generate(instrumentName string, caseIDs []string) error {
+	concurrent := goccm.New(MAXCONCURRENT)
+	for _, caseID := range caseIDs {
+		concurrent.Wait()
+		// How do I check for errors from the goroutine?
+		go uacGenerator.GenerateUniqueUac(instrumentName, caseID, concurrent)
+	}
+	concurrent.WaitAllDone()
+	return nil
 }
 
 func (uacGenerator *UacGenerator) instrumentCaseQuery(instrumentName, caseID string) *datastore.Query {
