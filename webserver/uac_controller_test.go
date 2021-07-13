@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 
 	"github.com/ONSDigital/blaise-uac-service/blaiserestapi"
+	"github.com/ONSDigital/blaise-uac-service/uacgenerator"
 	"github.com/ONSDigital/blaise-uac-service/webserver"
 	"github.com/gin-gonic/gin"
 	. "github.com/onsi/ginkgo"
@@ -85,11 +86,17 @@ var _ = Describe("UAC Controller", func() {
 			Context("when the instrument does exist when getting case ids", func() {
 				BeforeEach(func() {
 					mockBlaiseRestApi.On("GetCaseIds", "test123").Return([]string{"12345"}, nil)
+					mockUacGenerator.On("GetAllUacs", "test123").Return(map[string]*uacgenerator.UacInfo{
+						"125634896985": &uacgenerator.UacInfo{
+							InstrumentName: "test123",
+							CaseID:         "12452",
+						},
+					}, nil)
 				})
 
 				It("generates and return a bunch of UACs", func() {
 					Expect(httpRecorder.Code).To(Equal(http.StatusOK))
-					Expect(httpRecorder.Body.String()).To(Equal(`null`))
+					Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452"}}`))
 				})
 			})
 

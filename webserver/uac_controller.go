@@ -47,7 +47,12 @@ func (uacController *UacController) UACGeneratorEndpoint(context *gin.Context) {
 		context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	context.JSON(http.StatusOK, nil)
+	uacs, err := uacController.UacGenerator.GetAllUacs(instrumentName)
+	if err != nil {
+		context.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	context.JSON(http.StatusOK, uacs)
 }
 
 func (uacController *UacController) blaiseRestApiError(context *gin.Context, err error) {

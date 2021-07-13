@@ -11,6 +11,6 @@ go test ./...
 ```
 
 TODO:
-- return generated uacs
+- get all uacs for instrument "GET" endpoint
 - get errors out of uac generation goroutines
 - get caseId and instrument name from UAC
