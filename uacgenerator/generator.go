@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"sync"
 
 	"cloud.google.com/go/datastore"
 	"github.com/zenthangplus/goccm"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -24,6 +24,7 @@ type Datastore interface {
 	Mutate(context.Context, ...*datastore.Mutation) ([]*datastore.Key, error)
 	GetAll(context.Context, *datastore.Query, interface{}) ([]*datastore.Key, error)
 	Get(context.Context, *datastore.Key, interface{}) error
+	DeleteMulti(context.Context, []*datastore.Key) error
 	Close() error
 }
 
@@ -33,6 +34,7 @@ type UacGeneratorInterface interface {
 	Generate(string, []string) error
 	GetAllUacs(string) (map[string]*UacInfo, error)
 	GetUacInfo(string) (*UacInfo, error)
+	AdminDelete(string) error
 }
 
 type UacGenerator struct {
@@ -88,8 +90,7 @@ func (uacGenerator *UacGenerator) UacExistsForCase(instrumentName, caseID string
 	return false, nil
 }
 
-func (uacGenerator *UacGenerator) GenerateUniqueUac(instrumentName, caseID string, concurrent goccm.ConcurrencyManager) error {
-	defer concurrent.Done()
+func (uacGenerator *UacGenerator) GenerateUniqueUac(instrumentName, caseID string) error {
 	exists, err := uacGenerator.UacExistsForCase(instrumentName, caseID)
 	if err != nil {
 		return err
@@ -104,16 +105,39 @@ func (uacGenerator *UacGenerator) GenerateUniqueUac(instrumentName, caseID strin
 }
 
 func (uacGenerator *UacGenerator) Generate(instrumentName string, caseIDs []string) error {
-	concurrent := goccm.New(MAXCONCURRENT)
-	errs, _ := errgroup.WithContext(uacGenerator.Context)
+	var waitGroup sync.WaitGroup
+
+	errorChannel := make(chan error, 1)
+
+	waitGroup.Add(MAXCONCURRENT)
+	finished := make(chan bool, 1)
+
+	// concurrent := goccm.New(MAXCONCURRENT)
+	// errs, _ := errgroup.WithContext(uacGenerator.Context)
 	for _, caseID := range caseIDs {
-		concurrent.Wait()
-		errs.Go(func() error {
-			return uacGenerator.GenerateUniqueUac(instrumentName, caseID, concurrent)
-		})
+		// concurrent.Wait()
+		go func(caseID string) {
+			err := uacGenerator.GenerateUniqueUac(instrumentName, caseID)
+			if err != nil {
+				errorChannel <- err
+			}
+			waitGroup.Done()
+		}(caseID)
 	}
-	concurrent.WaitAllDone()
-	return errs.Wait()
+	// concurrent.WaitAllDone()
+	go func() {
+		waitGroup.Wait()
+		close(finished)
+	}()
+	select {
+	case <-finished:
+	case err := <-errorChannel:
+		if err != nil {
+			fmt.Println("error ", err)
+			return err
+		}
+	}
+	return nil
 }
 
 func (uacGenerator *UacGenerator) GetAllUacs(instrumentName string) (map[string]*UacInfo, error) {
@@ -129,13 +153,35 @@ func (uacGenerator *UacGenerator) GetAllUacs(instrumentName string) (map[string]
 	return uacs, nil
 }
 
-func (UacGenerator *UacGenerator) GetUacInfo(uac string) (*UacInfo, error) {
+func (uacGenerator *UacGenerator) GetUacInfo(uac string) (*UacInfo, error) {
 	uacInfo := &UacInfo{}
-	err := UacGenerator.DatastoreClient.Get(UacGenerator.Context, UacGenerator.UacKey(uac), uacInfo)
+	err := uacGenerator.DatastoreClient.Get(uacGenerator.Context, uacGenerator.UacKey(uac), uacInfo)
 	if err != nil {
 		return nil, err
 	}
 	return uacInfo, nil
+}
+
+func (uacGenerator *UacGenerator) AdminDelete(instrumentName string) error {
+	var instrumentUACs []*UacInfo
+	instrumentUACKeys, err := uacGenerator.DatastoreClient.GetAll(uacGenerator.Context, uacGenerator.instrumentQuery(instrumentName), &instrumentUACs)
+	if err != nil {
+		return err
+	}
+	uacKeyChunks := chunkDatastoreKeys(instrumentUACKeys)
+	concurrent := goccm.New(MAXCONCURRENT)
+	for _, uacKeyChunk := range uacKeyChunks {
+		concurrent.Wait()
+		go func(concurrency goccm.ConcurrencyManager, uacKeyChunk []*datastore.Key) {
+			defer concurrency.Done()
+			err := uacGenerator.DatastoreClient.DeleteMulti(uacGenerator.Context, uacKeyChunk)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}(concurrent, uacKeyChunk)
+	}
+	concurrent.WaitAllDone()
+	return nil
 }
 
 func (uacGenerator *UacGenerator) instrumentCaseQuery(instrumentName, caseID string) *datastore.Query {
@@ -147,4 +193,22 @@ func (uacGenerator *UacGenerator) instrumentCaseQuery(instrumentName, caseID str
 func (uacGenerator *UacGenerator) instrumentQuery(instrumentName string) *datastore.Query {
 	query := datastore.NewQuery(UACKIND)
 	return query.Filter("instrument_name =", strings.ToLower(instrumentName))
+}
+
+func chunkDatastoreKeys(keys []*datastore.Key) [][]*datastore.Key {
+	var (
+		chunks    [][]*datastore.Key
+		chunkSize = MAXCONCURRENT
+	)
+	for i := 0; i < len(keys); i += chunkSize {
+		end := i + chunkSize
+
+		if end > len(keys) {
+			end = len(keys)
+		}
+
+		chunks = append(chunks, keys[i:end])
+	}
+
+	return chunks
 }

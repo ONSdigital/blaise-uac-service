@@ -90,7 +90,7 @@ var _ = Describe("UAC Controller", func() {
 				BeforeEach(func() {
 					mockBlaiseRestApi.On("GetCaseIds", "test123").Return([]string{"12345"}, nil)
 					mockUacGenerator.On("GetAllUacs", "test123").Return(map[string]*uacgenerator.UacInfo{
-						"125634896985": &uacgenerator.UacInfo{
+						"125634896985": {
 							InstrumentName: "test123",
 							CaseID:         "12452",
 						},

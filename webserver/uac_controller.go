@@ -32,6 +32,7 @@ func (uacController *UacController) AddRoutes(httpRouter *gin.Engine) {
 		uacsGroup.POST("/instrument/:instrumentName", uacController.UACGeneratorEndpoint)
 		uacsGroup.GET("/instrument/:instrumentName", uacController.UACGetAllEndpoint)
 		uacsGroup.POST("/uac", uacController.GetUacInfoEndpoint)
+		uacsGroup.DELETE("/admin/instrument/:instrumentName", uacController.AdminDeleteEndpoint)
 	}
 }
 
@@ -103,6 +104,17 @@ func (UacController *UacController) GetUacInfoEndpoint(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, uacInfo)
+}
+
+func (uacController *UacController) AdminDeleteEndpoint(context *gin.Context) {
+	instrumentName := context.Param("instrumentName")
+	err := uacController.UacGenerator.AdminDelete(instrumentName)
+	if err != nil {
+		log.Println(err)
+		context.AbortWithStatusJSON(http.StatusInternalServerError, nil)
+		return
+	}
+	context.JSON(http.StatusNoContent, nil)
 }
 
 func (uacController *UacController) blaiseRestApiError(context *gin.Context, err error) {
