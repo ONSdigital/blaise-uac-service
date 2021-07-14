@@ -14,6 +14,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/vektra/mockery/v2 v2.9.0 // indirect
 	github.com/zenthangplus/goccm v0.0.0-20200608171100-39e9e08b694a
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/api v0.50.0 // indirect
 	google.golang.org/genproto v0.0.0-20210708141623-e76da96a951f
 	google.golang.org/grpc v1.39.0

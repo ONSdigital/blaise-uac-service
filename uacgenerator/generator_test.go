@@ -2,6 +2,7 @@ package uacgenerator_test
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -218,6 +219,37 @@ var _ = Describe("Generate", func() {
 
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", len(caseIDs))
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "GetAll", len(caseIDs))
+		})
+	})
+
+	Context("when at least one generation errors", func() {
+		BeforeEach(func() {
+			mockDatastore = &mocks.Datastore{}
+
+			uacGenerator.DatastoreClient = mockDatastore
+
+			mockDatastore.On("GetAll",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Query"),
+				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+			).Return(nil, nil)
+
+			mockDatastore.On("Mutate",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+			).Once().Return(nil, nil)
+			mockDatastore.On("Mutate",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+			).Once().Return(nil, fmt.Errorf("Massive mutation explosion"))
+			mockDatastore.On("Mutate",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+			).Return(nil, nil)
+		})
+
+		It("returns an error", func() {
+			Expect(uacGenerator.Generate(instrumentName, caseIDs)).To(MatchError("Massive mutation explosion"))
 		})
 	})
 

@@ -8,6 +8,7 @@ import (
 
 	"cloud.google.com/go/datastore"
 	"github.com/zenthangplus/goccm"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -102,13 +103,15 @@ func (uacGenerator *UacGenerator) GenerateUniqueUac(instrumentName, caseID strin
 
 func (uacGenerator *UacGenerator) Generate(instrumentName string, caseIDs []string) error {
 	concurrent := goccm.New(MAXCONCURRENT)
+	errs, _ := errgroup.WithContext(uacGenerator.Context)
 	for _, caseID := range caseIDs {
 		concurrent.Wait()
-		// How do I check for errors from the goroutine?
-		go uacGenerator.GenerateUniqueUac(instrumentName, caseID, concurrent)
+		errs.Go(func() error {
+			return uacGenerator.GenerateUniqueUac(instrumentName, caseID, concurrent)
+		})
 	}
 	concurrent.WaitAllDone()
-	return nil
+	return errs.Wait()
 }
 
 func (uacGenerator *UacGenerator) GetAllUacs(instrumentName string) (map[string]*UacInfo, error) {
