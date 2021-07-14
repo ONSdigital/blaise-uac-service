@@ -336,3 +336,42 @@ var _ = Describe("GetAllUacs", func() {
 		Expect(err).To(BeNil())
 	})
 })
+
+var _ = Describe("GetUacInfo", func() {
+	var (
+		uacGenerator = &uacgenerator.UacGenerator{
+			Context: context.Background(),
+		}
+		instrumentName = "lolcat"
+		mockDatastore  *mocks.Datastore
+	)
+
+	BeforeEach(func() {
+		mockDatastore = &mocks.Datastore{}
+
+		uacGenerator.DatastoreClient = mockDatastore
+
+		mockDatastore.On("Get",
+			uacGenerator.Context,
+			mock.AnythingOfTypeArgument("*datastore.Key"),
+			mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+		).Once().Return(
+			func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
+				uacInfo := dst.(*uacgenerator.UacInfo)
+				key := uacGenerator.UacKey("lemons")
+				*uacInfo = uacgenerator.UacInfo{
+					InstrumentName: instrumentName,
+					CaseID:         "12343",
+					UAC:            key,
+				}
+				return nil
+			})
+	})
+
+	It("Returns the uac info for a valid uac key", func() {
+		uacInfo, err := uacGenerator.GetUacInfo("lemons")
+		Expect(uacInfo.InstrumentName).To(Equal(instrumentName))
+		Expect(uacInfo.CaseID).To(Equal("12343"))
+		Expect(err).To(BeNil())
+	})
+})

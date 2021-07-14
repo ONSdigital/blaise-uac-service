@@ -1,9 +1,13 @@
 package webserver
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 
+	"cloud.google.com/go/datastore"
 	"github.com/ONSDigital/blaise-uac-service/blaiserestapi"
 	"github.com/ONSDigital/blaise-uac-service/uacgenerator"
 	"github.com/gin-gonic/gin"
@@ -11,6 +15,10 @@ import (
 
 type ResponseError struct {
 	Error string `json:"error"`
+}
+
+type UACRequest struct {
+	UAC string `json:"uac"`
 }
 
 type UacController struct {
@@ -21,8 +29,9 @@ type UacController struct {
 func (uacController *UacController) AddRoutes(httpRouter *gin.Engine) {
 	uacsGroup := httpRouter.Group("/uacs")
 	{
-		uacsGroup.POST("/:instrumentName", uacController.UACGeneratorEndpoint)
-		// uacsGroup.GET("/:instrumentName", uacController.UACGetEndpoint)
+		uacsGroup.POST("/instrument/:instrumentName", uacController.UACGeneratorEndpoint)
+		uacsGroup.GET("/instrument/:instrumentName", uacController.UACGetAllEndpoint)
+		uacsGroup.POST("/uac", uacController.GetUacInfoEndpoint)
 	}
 }
 
@@ -53,6 +62,47 @@ func (uacController *UacController) UACGeneratorEndpoint(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, uacs)
+}
+
+func (UacController *UacController) UACGetAllEndpoint(context *gin.Context) {
+	instrumentName := context.Param("instrumentName")
+
+	uacs, err := UacController.UacGenerator.GetAllUacs(instrumentName)
+	if err != nil {
+		context.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	context.JSON(http.StatusOK, uacs)
+}
+
+func (UacController *UacController) GetUacInfoEndpoint(context *gin.Context) {
+	body, err := ioutil.ReadAll(context.Request.Body)
+	if err != nil {
+		log.Println(err)
+		context.AbortWithStatusJSON(http.StatusBadRequest, nil)
+		return
+	}
+	defer context.Request.Body.Close()
+
+	var uac UACRequest
+	err = json.Unmarshal(body, &uac)
+	if err != nil {
+		log.Println(err)
+		context.AbortWithStatusJSON(http.StatusBadRequest, nil)
+		return
+	}
+
+	uacInfo, err := UacController.UacGenerator.GetUacInfo(uac.UAC)
+	if err != nil {
+		if err == datastore.ErrNoSuchEntity {
+			context.JSON(http.StatusNotFound, nil)
+			return
+		}
+		log.Println(err)
+		context.AbortWithStatusJSON(http.StatusInternalServerError, nil)
+		return
+	}
+	context.JSON(http.StatusOK, uacInfo)
 }
 
 func (uacController *UacController) blaiseRestApiError(context *gin.Context, err error) {

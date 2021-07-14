@@ -23,6 +23,7 @@ const (
 type Datastore interface {
 	Mutate(context.Context, ...*datastore.Mutation) ([]*datastore.Key, error)
 	GetAll(context.Context, *datastore.Query, interface{}) ([]*datastore.Key, error)
+	Get(context.Context, *datastore.Key, interface{}) error
 	Close() error
 }
 
@@ -31,6 +32,7 @@ type Datastore interface {
 type UacGeneratorInterface interface {
 	Generate(string, []string) error
 	GetAllUacs(string) (map[string]*UacInfo, error)
+	GetUacInfo(string) (*UacInfo, error)
 }
 
 type UacGenerator struct {
@@ -125,6 +127,15 @@ func (uacGenerator *UacGenerator) GetAllUacs(instrumentName string) (map[string]
 		uacs[uacInfo.UAC.Name] = uacInfo
 	}
 	return uacs, nil
+}
+
+func (UacGenerator *UacGenerator) GetUacInfo(uac string) (*UacInfo, error) {
+	uacInfo := &UacInfo{}
+	err := UacGenerator.DatastoreClient.Get(UacGenerator.Context, UacGenerator.UacKey(uac), uacInfo)
+	if err != nil {
+		return nil, err
+	}
+	return uacInfo, nil
 }
 
 func (uacGenerator *UacGenerator) instrumentCaseQuery(instrumentName, caseID string) *datastore.Query {
