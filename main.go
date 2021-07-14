@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
+	"time"
 
 	"cloud.google.com/go/datastore"
 	"github.com/ONSDigital/blaise-uac-service/blaiserestapi"
@@ -32,6 +34,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+
+	rand.Seed(time.Now().UTC().UnixNano())
 
 	blaiseRestAPI := &blaiserestapi.BlaiseRestApi{
 		Serverpark: config.Serverpark,
