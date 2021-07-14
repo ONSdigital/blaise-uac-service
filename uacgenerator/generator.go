@@ -3,6 +3,7 @@ package uacgenerator
 import (
 	"context"
 	"fmt"
+	"log"
 	"math/rand"
 	"strings"
 	"sync"
@@ -40,6 +41,8 @@ type UacGeneratorInterface interface {
 type UacGenerator struct {
 	DatastoreClient Datastore
 	Context         context.Context
+	GenerateError   map[string]error
+	mu              sync.Mutex
 }
 
 type UacInfo struct {
@@ -93,11 +96,19 @@ func (uacGenerator *UacGenerator) UacExistsForCase(instrumentName, caseID string
 func (uacGenerator *UacGenerator) GenerateUniqueUac(instrumentName, caseID string) error {
 	exists, err := uacGenerator.UacExistsForCase(instrumentName, caseID)
 	if err != nil {
+		uacGenerator.mu.Lock()
+		uacGenerator.GenerateError[instrumentName] = err
+		uacGenerator.mu.Unlock()
+		log.Println(err)
 		return err
 	}
 	if !exists {
 		_, err := uacGenerator.NewUac(instrumentName, caseID, 0)
 		if err != nil {
+			uacGenerator.mu.Lock()
+			uacGenerator.GenerateError[instrumentName] = err
+			uacGenerator.mu.Unlock()
+			log.Println(err)
 			return err
 		}
 	}
@@ -105,39 +116,23 @@ func (uacGenerator *UacGenerator) GenerateUniqueUac(instrumentName, caseID strin
 }
 
 func (uacGenerator *UacGenerator) Generate(instrumentName string, caseIDs []string) error {
-	var waitGroup sync.WaitGroup
-
-	errorChannel := make(chan error, 1)
-
-	waitGroup.Add(MAXCONCURRENT)
-	finished := make(chan bool, 1)
-
-	// concurrent := goccm.New(MAXCONCURRENT)
-	// errs, _ := errgroup.WithContext(uacGenerator.Context)
+	if uacGenerator.GenerateError == nil {
+		uacGenerator.GenerateError = make(map[string]error)
+	}
+	concurrent := goccm.New(MAXCONCURRENT)
 	for _, caseID := range caseIDs {
-		// concurrent.Wait()
+		concurrent.Wait()
 		go func(caseID string) {
-			err := uacGenerator.GenerateUniqueUac(instrumentName, caseID)
-			if err != nil {
-				errorChannel <- err
-			}
-			waitGroup.Done()
+			defer concurrent.Done()
+			uacGenerator.GenerateUniqueUac(instrumentName, caseID)
 		}(caseID)
 	}
-	// concurrent.WaitAllDone()
-	go func() {
-		waitGroup.Wait()
-		close(finished)
-	}()
-	select {
-	case <-finished:
-	case err := <-errorChannel:
-		if err != nil {
-			fmt.Println("error ", err)
-			return err
-		}
-	}
-	return nil
+	concurrent.WaitAllDone()
+	err := uacGenerator.GenerateError[instrumentName]
+	uacGenerator.mu.Lock()
+	uacGenerator.GenerateError[instrumentName] = nil
+	uacGenerator.mu.Unlock()
+	return err
 }
 
 func (uacGenerator *UacGenerator) GetAllUacs(instrumentName string) (map[string]*UacInfo, error) {
@@ -172,16 +167,20 @@ func (uacGenerator *UacGenerator) AdminDelete(instrumentName string) error {
 	concurrent := goccm.New(MAXCONCURRENT)
 	for _, uacKeyChunk := range uacKeyChunks {
 		concurrent.Wait()
-		go func(concurrency goccm.ConcurrencyManager, uacKeyChunk []*datastore.Key) {
-			defer concurrency.Done()
-			err := uacGenerator.DatastoreClient.DeleteMulti(uacGenerator.Context, uacKeyChunk)
-			if err != nil {
-				fmt.Println(err)
-			}
-		}(concurrent, uacKeyChunk)
+		go func(uacKeyChunk []*datastore.Key) {
+			uacGenerator.adminDeleteChunk(uacKeyChunk, concurrent)
+		}(uacKeyChunk)
 	}
 	concurrent.WaitAllDone()
 	return nil
+}
+
+func (uacGenerator *UacGenerator) adminDeleteChunk(uacKeyChunk []*datastore.Key, concurrent goccm.ConcurrencyManager) {
+	defer concurrent.Done()
+	err := uacGenerator.DatastoreClient.DeleteMulti(uacGenerator.Context, uacKeyChunk)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func (uacGenerator *UacGenerator) instrumentCaseQuery(instrumentName, caseID string) *datastore.Query {
