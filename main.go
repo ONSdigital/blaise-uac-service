@@ -15,8 +15,8 @@ import (
 
 type Config struct {
 	Serverpark       string `default:"gusty"`
-	DatastoreProject string `required:"true" split_words:"true" default:"ons-blaise-v2-dev-nik13"`
-	BlaiseBaseUrl    string `required:"true" split_words:"true" default:"http://localhost:90"`
+	DatastoreProject string `required:"true" split_words:"true"`
+	BlaiseBaseUrl    string `required:"true" split_words:"true"`
 	Port             string `default:"8082"`
 }
 
