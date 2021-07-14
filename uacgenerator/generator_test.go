@@ -284,6 +284,32 @@ var _ = Describe("Generate", func() {
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "GetAll", len(caseIDs))
 		})
 	})
+
+	Context("when there are no cases", func() {
+		BeforeEach(func() {
+			mockDatastore = &mocks.Datastore{}
+
+			uacGenerator.DatastoreClient = mockDatastore
+
+			mockDatastore.On("GetAll",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Query"),
+				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+			).Return(nil, nil)
+
+			mockDatastore.On("Mutate",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+			).Return(nil, nil)
+		})
+
+		It("generates uacs for all case ids in an instrument", func() {
+			Expect(uacGenerator.Generate(instrumentName, []string{})).To(BeNil())
+
+			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
+			mockDatastore.AssertNumberOfCalls(GinkgoT(), "GetAll", 0)
+		})
+	})
 })
 
 var _ = Describe("GetAllUacs", func() {

@@ -116,6 +116,9 @@ func (uacGenerator *UacGenerator) GenerateUniqueUac(instrumentName, caseID strin
 }
 
 func (uacGenerator *UacGenerator) Generate(instrumentName string, caseIDs []string) error {
+	if len(caseIDs) == 0 {
+		return nil
+	}
 	if uacGenerator.GenerateError == nil {
 		uacGenerator.GenerateError = make(map[string]error)
 	}
