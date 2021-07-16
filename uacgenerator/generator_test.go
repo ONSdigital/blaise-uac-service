@@ -363,6 +363,34 @@ var _ = Describe("GetAllUacs", func() {
 	})
 })
 
+var _ = Describe("GetUacCount", func() {
+
+	var (
+		uacGenerator = &uacgenerator.UacGenerator{
+			Context: context.Background(),
+		}
+		instrumentName = "lolcat"
+		mockDatastore  *mocks.Datastore
+	)
+
+	BeforeEach(func() {
+		mockDatastore = &mocks.Datastore{}
+
+		uacGenerator.DatastoreClient = mockDatastore
+
+		mockDatastore.On("Count",
+			uacGenerator.Context,
+			mock.AnythingOfTypeArgument("*datastore.Query"),
+		).Return(40, nil)
+	})
+
+	It("returns a map of all uacs with info", func() {
+		count, err := uacGenerator.GetUacCount(instrumentName)
+		Expect(count).To(Equal(40))
+		Expect(err).To(BeNil())
+	})
+})
+
 var _ = Describe("GetUacInfo", func() {
 	var (
 		uacGenerator = &uacgenerator.UacGenerator{

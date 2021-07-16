@@ -168,6 +168,32 @@ var _ = Describe("UAC Controller", func() {
 		})
 	})
 
+	Describe("/uacs/instrument/:instrumentName/count", func() {
+		var (
+			httpRecorder     *httptest.ResponseRecorder
+			mockUacGenerator *mockuacgenerator.UacGeneratorInterface
+		)
+
+		JustBeforeEach(func() {
+			httpRecorder = httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/uacs/instrument/test123/count", nil)
+			httpRouter.ServeHTTP(httpRecorder, req)
+		})
+
+		BeforeEach(func() {
+			mockUacGenerator = &mockuacgenerator.UacGeneratorInterface{}
+
+			uacController.UacGenerator = mockUacGenerator
+
+			mockUacGenerator.On("GetUacCount", "test123").Return(20, nil)
+		})
+
+		It("Returns a number of uacs with a status Ok", func() {
+			Expect(httpRecorder.Code).To(Equal(http.StatusOK))
+			Expect(httpRecorder.Body.String()).To(Equal(`{"count":20}`))
+		})
+	})
+
 	Describe("/uacs/uac", func() {
 		var (
 			httpRecorder     *httptest.ResponseRecorder

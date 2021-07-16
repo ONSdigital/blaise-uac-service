@@ -31,6 +31,7 @@ func (uacController *UacController) AddRoutes(httpRouter *gin.Engine) {
 	{
 		uacsGroup.POST("/instrument/:instrumentName", uacController.UACGeneratorEndpoint)
 		uacsGroup.GET("/instrument/:instrumentName", uacController.UACGetAllEndpoint)
+		uacsGroup.GET("/instrument/:instrumentName/count", uacController.UACCountEndpoint)
 		uacsGroup.POST("/uac", uacController.GetUacInfoEndpoint)
 		uacsGroup.DELETE("/admin/instrument/:instrumentName", uacController.AdminDeleteEndpoint)
 	}
@@ -74,6 +75,17 @@ func (UacController *UacController) UACGetAllEndpoint(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, uacs)
+}
+
+func (UacController *UacController) UACCountEndpoint(context *gin.Context) {
+	instrumentName := context.Param("instrumentName")
+
+	uacCount, err := UacController.UacGenerator.GetUacCount(instrumentName)
+	if err != nil {
+		context.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	context.JSON(http.StatusOK, gin.H{"count": uacCount})
 }
 
 func (UacController *UacController) GetUacInfoEndpoint(context *gin.Context) {
