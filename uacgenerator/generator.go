@@ -24,6 +24,7 @@ const (
 type Datastore interface {
 	Mutate(context.Context, ...*datastore.Mutation) ([]*datastore.Key, error)
 	GetAll(context.Context, *datastore.Query, interface{}) ([]*datastore.Key, error)
+	Count(context.Context, *datastore.Query) (int, error)
 	Get(context.Context, *datastore.Key, interface{}) error
 	DeleteMulti(context.Context, []*datastore.Key) error
 	Close() error
@@ -34,6 +35,7 @@ type Datastore interface {
 type UacGeneratorInterface interface {
 	Generate(string, []string) error
 	GetAllUacs(string) (map[string]*UacInfo, error)
+	GetUacCount(string) (int, error)
 	GetUacInfo(string) (*UacInfo, error)
 	AdminDelete(string) error
 }
@@ -149,6 +151,10 @@ func (uacGenerator *UacGenerator) GetAllUacs(instrumentName string) (map[string]
 		uacs[uacInfo.UAC.Name] = uacInfo
 	}
 	return uacs, nil
+}
+
+func (uacGenerator *UacGenerator) GetUacCount(instrumentName string) (int, error) {
+	return uacGenerator.DatastoreClient.Count(uacGenerator.Context, uacGenerator.instrumentQuery(instrumentName))
 }
 
 func (uacGenerator *UacGenerator) GetUacInfo(uac string) (*UacInfo, error) {

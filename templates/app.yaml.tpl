@@ -5,6 +5,7 @@ env_variables:
   DATASTORE_PROJECT: _DATASTORE_PROJECT
   BLAISE_BASE_URL: _BLAISE_BASE_URL
   SERVERPARK: _SERVERPARK
+  GIN_MODE: release
 
 vpc_access_connector:
   name: projects/_PROJECT_ID/locations/europe-west2/connectors/vpcconnect
