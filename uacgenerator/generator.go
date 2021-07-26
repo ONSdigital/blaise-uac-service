@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"strings"
 	"sync"
+	"time"
 
 	"cloud.google.com/go/datastore"
 	"github.com/zenthangplus/goccm"
@@ -37,6 +38,8 @@ type UacGeneratorInterface interface {
 	GetAllUacs(string) (map[string]*UacInfo, error)
 	GetUacCount(string) (int, error)
 	GetUacInfo(string) (*UacInfo, error)
+	IncrementPostcodeAttempts(string) (*UacInfo, error)
+	ResetPostcodeAttempts(string) (*UacInfo, error)
 	AdminDelete(string) error
 }
 
@@ -48,9 +51,11 @@ type UacGenerator struct {
 }
 
 type UacInfo struct {
-	InstrumentName string         `json:"instrument_name" datastore:"instrument_name"`
-	CaseID         string         `json:"case_id" datastore:"case_id"`
-	UAC            *datastore.Key `json:"-" datastore:"__key__"`
+	InstrumentName           string         `json:"instrument_name" datastore:"instrument_name"`
+	CaseID                   string         `json:"case_id" datastore:"case_id"`
+	PostcodeAttempts         int            `json:"postcode_attempts" datastore:"postcode_attempts"`
+	PostcodeAttemptTimestamp string         `json:"postcode_attempt_timestamp" datastore:"postcode_attempt_timestamp"`
+	UAC                      *datastore.Key `json:"-" datastore:"__key__"`
 }
 
 func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt int) (string, error) {
@@ -164,6 +169,32 @@ func (uacGenerator *UacGenerator) GetUacInfo(uac string) (*UacInfo, error) {
 		return nil, err
 	}
 	return uacInfo, nil
+}
+
+func (uacGenerator *UacGenerator) IncrementPostcodeAttempts(uac string) (*UacInfo, error) {
+	uacInfo, err := uacGenerator.GetUacInfo(uac)
+	if err != nil {
+		return nil, err
+	}
+	uacInfo.PostcodeAttempts++
+	uacInfo.PostcodeAttemptTimestamp = time.Now().UTC().String()
+
+	newUACMutation := datastore.NewUpdate(uacGenerator.UacKey(uac), uacInfo)
+	_, err = uacGenerator.DatastoreClient.Mutate(uacGenerator.Context, newUACMutation)
+	return uacInfo, err
+}
+
+func (uacGenerator *UacGenerator) ResetPostcodeAttempts(uac string) (*UacInfo, error) {
+	uacInfo, err := uacGenerator.GetUacInfo(uac)
+	if err != nil {
+		return nil, err
+	}
+	uacInfo.PostcodeAttempts = 0
+	uacInfo.PostcodeAttemptTimestamp = ""
+
+	newUACMutation := datastore.NewUpdate(uacGenerator.UacKey(uac), uacInfo)
+	_, err = uacGenerator.DatastoreClient.Mutate(uacGenerator.Context, newUACMutation)
+	return uacInfo, err
 }
 
 func (uacGenerator *UacGenerator) AdminDelete(instrumentName string) error {

@@ -33,6 +33,8 @@ func (uacController *UacController) AddRoutes(httpRouter *gin.Engine) {
 		uacsGroup.GET("/instrument/:instrumentName", uacController.UACGetAllEndpoint)
 		uacsGroup.GET("/instrument/:instrumentName/count", uacController.UACCountEndpoint)
 		uacsGroup.POST("/uac", uacController.GetUacInfoEndpoint)
+		uacsGroup.POST("/uac/attempts", uacController.IncrementPostcodeAttempts)
+		uacsGroup.DELETE("/uac/attempts", uacController.ResetPostcodeAttempts)
 		uacsGroup.DELETE("/admin/instrument/:instrumentName", uacController.AdminDeleteEndpoint)
 	}
 }
@@ -88,24 +90,57 @@ func (UacController *UacController) UACCountEndpoint(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"count": uacCount})
 }
 
-func (UacController *UacController) GetUacInfoEndpoint(context *gin.Context) {
-	body, err := ioutil.ReadAll(context.Request.Body)
-	if err != nil {
-		log.Println(err)
-		context.AbortWithStatusJSON(http.StatusBadRequest, nil)
-		return
-	}
-	defer context.Request.Body.Close()
-
-	var uac UACRequest
-	err = json.Unmarshal(body, &uac)
+func (uacController *UacController) GetUacInfoEndpoint(context *gin.Context) {
+	uac, err := uacController.getUacRequest(context)
 	if err != nil {
 		log.Println(err)
 		context.AbortWithStatusJSON(http.StatusBadRequest, nil)
 		return
 	}
 
-	uacInfo, err := UacController.UacGenerator.GetUacInfo(uac.UAC)
+	uacInfo, err := uacController.UacGenerator.GetUacInfo(uac.UAC)
+	if err != nil {
+		if err == datastore.ErrNoSuchEntity {
+			context.JSON(http.StatusNotFound, nil)
+			return
+		}
+		log.Println(err)
+		context.AbortWithStatusJSON(http.StatusInternalServerError, nil)
+		return
+	}
+	context.JSON(http.StatusOK, uacInfo)
+}
+
+func (uacController *UacController) IncrementPostcodeAttempts(context *gin.Context) {
+	uac, err := uacController.getUacRequest(context)
+	if err != nil {
+		log.Println(err)
+		context.AbortWithStatusJSON(http.StatusBadRequest, nil)
+		return
+	}
+
+	uacInfo, err := uacController.UacGenerator.IncrementPostcodeAttempts(uac.UAC)
+	if err != nil {
+		if err == datastore.ErrNoSuchEntity {
+			context.JSON(http.StatusNotFound, nil)
+			return
+		}
+		log.Println(err)
+		context.AbortWithStatusJSON(http.StatusInternalServerError, nil)
+		return
+	}
+	context.JSON(http.StatusOK, uacInfo)
+}
+
+func (uacController *UacController) ResetPostcodeAttempts(context *gin.Context) {
+	uac, err := uacController.getUacRequest(context)
+	if err != nil {
+		log.Println(err)
+		context.AbortWithStatusJSON(http.StatusBadRequest, nil)
+		return
+	}
+
+	uacInfo, err := uacController.UacGenerator.ResetPostcodeAttempts(uac.UAC)
 	if err != nil {
 		if err == datastore.ErrNoSuchEntity {
 			context.JSON(http.StatusNotFound, nil)
@@ -135,4 +170,19 @@ func (uacController *UacController) blaiseRestApiError(context *gin.Context, err
 		return
 	}
 	context.AbortWithError(http.StatusInternalServerError, err)
+}
+
+func (uacController *UacController) getUacRequest(context *gin.Context) (UACRequest, error) {
+	body, err := ioutil.ReadAll(context.Request.Body)
+	if err != nil {
+		return UACRequest{}, err
+	}
+	defer context.Request.Body.Close()
+
+	var uac UACRequest
+	err = json.Unmarshal(body, &uac)
+	if err != nil {
+		return UACRequest{}, err
+	}
+	return uac, nil
 }

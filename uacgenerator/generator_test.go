@@ -429,3 +429,177 @@ var _ = Describe("GetUacInfo", func() {
 		Expect(err).To(BeNil())
 	})
 })
+
+var _ = Describe("IncrementPostcodeAttempts", func() {
+	var (
+		uacGenerator = &uacgenerator.UacGenerator{
+			Context: context.Background(),
+		}
+		instrumentName = "lolcat"
+		mockDatastore  *mocks.Datastore
+	)
+
+	Context("when no attempts have been made", func() {
+		BeforeEach(func() {
+			mockDatastore = &mocks.Datastore{}
+
+			uacGenerator.DatastoreClient = mockDatastore
+
+			mockDatastore.On("Get",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Key"),
+				mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+			).Once().Return(
+				func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
+					uacInfo := dst.(*uacgenerator.UacInfo)
+					key := uacGenerator.UacKey("lemons")
+					*uacInfo = uacgenerator.UacInfo{
+						InstrumentName: instrumentName,
+						CaseID:         "12343",
+						UAC:            key,
+					}
+					return nil
+				})
+			mockDatastore.On("Mutate",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+			).Return(nil, nil)
+		})
+
+		It("increments the postcode attempts and returns uacInfo", func() {
+			uacInfo, err := uacGenerator.IncrementPostcodeAttempts("lemons")
+			Expect(uacInfo.InstrumentName).To(Equal(instrumentName))
+			Expect(uacInfo.CaseID).To(Equal("12343"))
+			Expect(uacInfo.PostcodeAttempts).To(Equal(1))
+			Expect(err).To(BeNil())
+			layout := "2006-01-02 15:04:05.999999999 -0700 MST"
+			_, err = time.Parse(layout, uacInfo.PostcodeAttemptTimestamp)
+			Expect(err).To(BeNil())
+		})
+	})
+
+	Context("when some attempts have been made", func() {
+		BeforeEach(func() {
+			mockDatastore = &mocks.Datastore{}
+
+			uacGenerator.DatastoreClient = mockDatastore
+
+			mockDatastore.On("Get",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Key"),
+				mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+			).Once().Return(
+				func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
+					uacInfo := dst.(*uacgenerator.UacInfo)
+					key := uacGenerator.UacKey("lemons")
+					*uacInfo = uacgenerator.UacInfo{
+						InstrumentName:   instrumentName,
+						CaseID:           "12343",
+						UAC:              key,
+						PostcodeAttempts: 3,
+					}
+					return nil
+				})
+			mockDatastore.On("Mutate",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+			).Return(nil, nil)
+		})
+
+		It("increments the postcode attempts and returns uacInfo", func() {
+			uacInfo, err := uacGenerator.IncrementPostcodeAttempts("lemons")
+			Expect(uacInfo.InstrumentName).To(Equal(instrumentName))
+			Expect(uacInfo.CaseID).To(Equal("12343"))
+			Expect(uacInfo.PostcodeAttempts).To(Equal(4))
+			Expect(err).To(BeNil())
+			layout := "2006-01-02 15:04:05.999999999 -0700 MST"
+			_, err = time.Parse(layout, uacInfo.PostcodeAttemptTimestamp)
+			Expect(err).To(BeNil())
+		})
+	})
+})
+
+var _ = Describe("ResetPostcodeAttempts", func() {
+	var (
+		uacGenerator = &uacgenerator.UacGenerator{
+			Context: context.Background(),
+		}
+		instrumentName = "lolcat"
+		mockDatastore  *mocks.Datastore
+	)
+
+	Context("when no attempts have been made", func() {
+		BeforeEach(func() {
+			mockDatastore = &mocks.Datastore{}
+
+			uacGenerator.DatastoreClient = mockDatastore
+
+			mockDatastore.On("Get",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Key"),
+				mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+			).Once().Return(
+				func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
+					uacInfo := dst.(*uacgenerator.UacInfo)
+					key := uacGenerator.UacKey("lemons")
+					*uacInfo = uacgenerator.UacInfo{
+						InstrumentName: instrumentName,
+						CaseID:         "12343",
+						UAC:            key,
+					}
+					return nil
+				})
+			mockDatastore.On("Mutate",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+			).Return(nil, nil)
+		})
+
+		It("increments the postcode attempts and returns uacInfo", func() {
+			uacInfo, err := uacGenerator.ResetPostcodeAttempts("lemons")
+			Expect(uacInfo.InstrumentName).To(Equal(instrumentName))
+			Expect(uacInfo.CaseID).To(Equal("12343"))
+			Expect(uacInfo.PostcodeAttempts).To(Equal(0))
+			Expect(uacInfo.PostcodeAttemptTimestamp).To(Equal(""))
+			Expect(err).To(BeNil())
+		})
+	})
+
+	Context("when some attempts have been made", func() {
+		BeforeEach(func() {
+			mockDatastore = &mocks.Datastore{}
+
+			uacGenerator.DatastoreClient = mockDatastore
+
+			mockDatastore.On("Get",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Key"),
+				mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+			).Once().Return(
+				func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
+					uacInfo := dst.(*uacgenerator.UacInfo)
+					key := uacGenerator.UacKey("lemons")
+					*uacInfo = uacgenerator.UacInfo{
+						InstrumentName:   instrumentName,
+						CaseID:           "12343",
+						UAC:              key,
+						PostcodeAttempts: 3,
+					}
+					return nil
+				})
+			mockDatastore.On("Mutate",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+			).Return(nil, nil)
+		})
+
+		It("increments the postcode attempts and returns uacInfo", func() {
+			uacInfo, err := uacGenerator.ResetPostcodeAttempts("lemons")
+			Expect(uacInfo.InstrumentName).To(Equal(instrumentName))
+			Expect(uacInfo.CaseID).To(Equal("12343"))
+			Expect(uacInfo.PostcodeAttempts).To(Equal(0))
+			Expect(uacInfo.PostcodeAttemptTimestamp).To(Equal(""))
+			Expect(err).To(BeNil())
+		})
+	})
+})
