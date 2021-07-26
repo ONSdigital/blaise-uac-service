@@ -276,7 +276,7 @@ var _ = Describe("UAC Controller", func() {
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("POST", "/uacs/uac/attempts", requestBody)
+			req, _ := http.NewRequest("POST", "/uacs/uac/postcode/attempts", requestBody)
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
@@ -350,7 +350,7 @@ var _ = Describe("UAC Controller", func() {
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("DELETE", "/uacs/uac/attempts", requestBody)
+			req, _ := http.NewRequest("DELETE", "/uacs/uac/postcode/attempts", requestBody)
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 

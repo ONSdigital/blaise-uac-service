@@ -33,8 +33,8 @@ func (uacController *UacController) AddRoutes(httpRouter *gin.Engine) {
 		uacsGroup.GET("/instrument/:instrumentName", uacController.UACGetAllEndpoint)
 		uacsGroup.GET("/instrument/:instrumentName/count", uacController.UACCountEndpoint)
 		uacsGroup.POST("/uac", uacController.GetUacInfoEndpoint)
-		uacsGroup.POST("/uac/attempts", uacController.IncrementPostcodeAttempts)
-		uacsGroup.DELETE("/uac/attempts", uacController.ResetPostcodeAttempts)
+		uacsGroup.POST("/uac/postcode/attempts", uacController.IncrementPostcodeAttempts)
+		uacsGroup.DELETE("/uac/postcode/attempts", uacController.ResetPostcodeAttempts)
 		uacsGroup.DELETE("/admin/instrument/:instrumentName", uacController.AdminDeleteEndpoint)
 	}
 }
