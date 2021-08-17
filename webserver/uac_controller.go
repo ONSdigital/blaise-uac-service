@@ -71,6 +71,7 @@ func (uacController *UacController) UACInstrumentGenerateEndpoint(context *gin.C
 		context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+	uacs.BuildUacChunks()
 	context.JSON(http.StatusOK, uacs)
 }
 
@@ -101,6 +102,7 @@ func (uacController *UacController) UACGenerateEndpoint(context *gin.Context) {
 		context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+	uacs.BuildUacChunks()
 	context.JSON(http.StatusOK, uacs)
 }
 
@@ -112,6 +114,7 @@ func (UacController *UacController) UACGetAllEndpoint(context *gin.Context) {
 		context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+	uacs.BuildUacChunks()
 	context.JSON(http.StatusOK, uacs)
 }
 

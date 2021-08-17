@@ -10,6 +10,7 @@ import (
 	"github.com/ONSDigital/blaise-uac-service/uacgenerator"
 	"github.com/ONSDigital/blaise-uac-service/uacgenerator/mocks"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
@@ -600,6 +601,29 @@ var _ = Describe("ResetPostcodeAttempts", func() {
 			Expect(uacInfo.PostcodeAttempts).To(Equal(0))
 			Expect(uacInfo.PostcodeAttemptTimestamp).To(Equal(""))
 			Expect(err).To(BeNil())
+		})
+	})
+})
+
+var _ = DescribeTable("ChunkUAC",
+	func(uac string, expected uacgenerator.UacChunks) {
+		Expect(*uacgenerator.ChunkUAC(uac)).To(Equal(expected))
+	},
+	Entry("123456781234", "123456781234", uacgenerator.UacChunks{UAC1: "1234", UAC2: "5678", UAC3: "1234"}),
+	Entry("111122223333", "111122223333", uacgenerator.UacChunks{UAC1: "1111", UAC2: "2222", UAC3: "3333"}),
+)
+
+var _ = Describe("Uacs", func() {
+	Describe("BuildUacChunks", func() {
+		var uacs = uacgenerator.Uacs{
+			"111122223333": &uacgenerator.UacInfo{},
+			"123456781234": &uacgenerator.UacInfo{},
+		}
+
+		It("Adds UacChunks to the UacInfo", func() {
+			uacs.BuildUacChunks()
+			Expect(*uacs["111122223333"].UacChunks).To(Equal(uacgenerator.UacChunks{UAC1: "1111", UAC2: "2222", UAC3: "3333"}))
+			Expect(*uacs["123456781234"].UacChunks).To(Equal(uacgenerator.UacChunks{UAC1: "1234", UAC2: "5678", UAC3: "1234"}))
 		})
 	})
 })

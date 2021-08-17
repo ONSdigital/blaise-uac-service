@@ -35,7 +35,7 @@ type Datastore interface {
 //go:generate mockery --name UacGeneratorInterface
 type UacGeneratorInterface interface {
 	Generate(string, []string) error
-	GetAllUacs(string) (map[string]*UacInfo, error)
+	GetAllUacs(string) (Uacs, error)
 	GetUacCount(string) (int, error)
 	GetUacInfo(string) (*UacInfo, error)
 	IncrementPostcodeAttempts(string) (*UacInfo, error)
@@ -50,12 +50,27 @@ type UacGenerator struct {
 	mu              sync.Mutex
 }
 
+type UacChunks struct {
+	UAC1 string `json:"uac1"`
+	UAC2 string `json:"uac2"`
+	UAC3 string `json:"uac3"`
+}
+
 type UacInfo struct {
 	InstrumentName           string         `json:"instrument_name" datastore:"instrument_name"`
 	CaseID                   string         `json:"case_id" datastore:"case_id"`
 	PostcodeAttempts         int            `json:"postcode_attempts" datastore:"postcode_attempts"`
 	PostcodeAttemptTimestamp string         `json:"postcode_attempt_timestamp" datastore:"postcode_attempt_timestamp"`
+	UacChunks                *UacChunks     `json:"uac_chunks,omitempty" datastore:"-"`
 	UAC                      *datastore.Key `json:"-" datastore:"__key__"`
+}
+
+type Uacs map[string]*UacInfo
+
+func (uacs Uacs) BuildUacChunks() {
+	for uac, uacInfo := range uacs {
+		uacInfo.UacChunks = ChunkUAC(uac)
+	}
 }
 
 func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt int) (string, error) {
@@ -145,13 +160,13 @@ func (uacGenerator *UacGenerator) Generate(instrumentName string, caseIDs []stri
 	return err
 }
 
-func (uacGenerator *UacGenerator) GetAllUacs(instrumentName string) (map[string]*UacInfo, error) {
+func (uacGenerator *UacGenerator) GetAllUacs(instrumentName string) (Uacs, error) {
 	var uacInfos []*UacInfo
 	_, err := uacGenerator.DatastoreClient.GetAll(uacGenerator.Context, uacGenerator.instrumentQuery(instrumentName), &uacInfos)
 	if err != nil {
 		return nil, err
 	}
-	uacs := make(map[string]*UacInfo)
+	uacs := make(Uacs)
 	for _, uacInfo := range uacInfos {
 		uacs[uacInfo.UAC.Name] = uacInfo
 	}
@@ -213,6 +228,24 @@ func (uacGenerator *UacGenerator) AdminDelete(instrumentName string) error {
 	}
 	concurrent.WaitAllDone()
 	return nil
+}
+
+func ChunkUAC(uac string) *UacChunks {
+	var chunks []string
+	runes := []rune(uac)
+
+	if len(runes) == 0 {
+		return nil
+	}
+
+	for i := 0; i < len(runes); i += 4 {
+		nn := i + 4
+		if nn > len(runes) {
+			nn = len(runes)
+		}
+		chunks = append(chunks, string(runes[i:nn]))
+	}
+	return &UacChunks{UAC1: chunks[0], UAC2: chunks[1], UAC3: chunks[2]}
 }
 
 func (uacGenerator *UacGenerator) adminDeleteChunk(uacKeyChunk []*datastore.Key, concurrent goccm.ConcurrencyManager) {

@@ -82,7 +82,7 @@ var _ = Describe("UAC Controller", func() {
 			Context("when the instrument does exist when getting case ids", func() {
 				BeforeEach(func() {
 					mockBlaiseRestApi.On("GetCaseIds", "test123").Return([]string{"12345"}, nil)
-					mockUacGenerator.On("GetAllUacs", "test123").Return(map[string]*uacgenerator.UacInfo{
+					mockUacGenerator.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{
 						"125634896985": {
 							InstrumentName: "test123",
 							CaseID:         "12452",
@@ -92,7 +92,7 @@ var _ = Describe("UAC Controller", func() {
 
 				It("generates and return a bunch of UACs", func() {
 					Expect(httpRecorder.Code).To(Equal(http.StatusOK))
-					Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452","postcode_attempts":0,"postcode_attempt_timestamp":""}}`))
+					Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452","postcode_attempts":0,"postcode_attempt_timestamp":"","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"}}}`))
 				})
 			})
 
@@ -122,7 +122,7 @@ var _ = Describe("UAC Controller", func() {
 
 		Context("When the instrument has UAC codes", func() {
 			BeforeEach(func() {
-				mockUacGenerator.On("GetAllUacs", "test123").Return(map[string]*uacgenerator.UacInfo{
+				mockUacGenerator.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{
 					"125634896985": {
 						InstrumentName: "test123",
 						CaseID:         "12452",
@@ -136,13 +136,13 @@ var _ = Describe("UAC Controller", func() {
 
 			It("Gets all UACs for an installed instrument", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusOK))
-				Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452","postcode_attempts":0,"postcode_attempt_timestamp":""},"78945612309":{"instrument_name":"test123","case_id":"65858","postcode_attempts":0,"postcode_attempt_timestamp":""}}`))
+				Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452","postcode_attempts":0,"postcode_attempt_timestamp":"","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"}},"78945612309":{"instrument_name":"test123","case_id":"65858","postcode_attempts":0,"postcode_attempt_timestamp":"","uac_chunks":{"uac1":"7894","uac2":"5612","uac3":"309"}}}`))
 			})
 		})
 
 		Context("When the instrument has UAC Info held against it", func() {
 			BeforeEach(func() {
-				mockUacGenerator.On("GetAllUacs", "test123").Return(map[string]*uacgenerator.UacInfo{}, nil)
+				mockUacGenerator.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{}, nil)
 			})
 
 			It("Returns an empty list with status code of Ok", func() {
@@ -188,7 +188,7 @@ var _ = Describe("UAC Controller", func() {
 
 			BeforeEach(func() {
 				mockUacGenerator.On("Generate", "test123", []string{"123", "456", "789"}).Return(nil)
-				mockUacGenerator.On("GetAllUacs", "test123").Return(map[string]*uacgenerator.UacInfo{
+				mockUacGenerator.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{
 					"125634896985": {
 						InstrumentName: "test123",
 						CaseID:         "12452",
@@ -198,7 +198,7 @@ var _ = Describe("UAC Controller", func() {
 
 			It("generates and return a bunch of UACs", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusOK))
-				Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452","postcode_attempts":0,"postcode_attempt_timestamp":""}}`))
+				Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452","postcode_attempts":0,"postcode_attempt_timestamp":"","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"}}}`))
 			})
 		})
 
@@ -212,7 +212,7 @@ var _ = Describe("UAC Controller", func() {
 
 			BeforeEach(func() {
 				mockUacGenerator.On("Generate", "test123", []string(nil)).Return(nil)
-				mockUacGenerator.On("GetAllUacs", "test123").Return(map[string]*uacgenerator.UacInfo{}, nil)
+				mockUacGenerator.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{}, nil)
 			})
 
 			It("generated nothing, and returns as such", func() {

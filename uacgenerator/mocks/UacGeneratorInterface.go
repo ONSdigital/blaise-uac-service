@@ -41,15 +41,15 @@ func (_m *UacGeneratorInterface) Generate(_a0 string, _a1 []string) error {
 }
 
 // GetAllUacs provides a mock function with given fields: _a0
-func (_m *UacGeneratorInterface) GetAllUacs(_a0 string) (map[string]*uacgenerator.UacInfo, error) {
+func (_m *UacGeneratorInterface) GetAllUacs(_a0 string) (uacgenerator.Uacs, error) {
 	ret := _m.Called(_a0)
 
-	var r0 map[string]*uacgenerator.UacInfo
-	if rf, ok := ret.Get(0).(func(string) map[string]*uacgenerator.UacInfo); ok {
+	var r0 uacgenerator.Uacs
+	if rf, ok := ret.Get(0).(func(string) uacgenerator.Uacs); ok {
 		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[string]*uacgenerator.UacInfo)
+			r0 = ret.Get(0).(uacgenerator.Uacs)
 		}
 	}
 
