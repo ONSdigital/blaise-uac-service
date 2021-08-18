@@ -63,6 +63,29 @@ func (_m *UacGeneratorInterface) GetAllUacs(_a0 string) (uacgenerator.Uacs, erro
 	return r0, r1
 }
 
+// GetInstruments provides a mock function with given fields:
+func (_m *UacGeneratorInterface) GetInstruments() ([]string, error) {
+	ret := _m.Called()
+
+	var r0 []string
+	if rf, ok := ret.Get(0).(func() []string); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetUacCount provides a mock function with given fields: _a0
 func (_m *UacGeneratorInterface) GetUacCount(_a0 string) (int, error) {
 	ret := _m.Called(_a0)

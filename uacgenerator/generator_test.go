@@ -431,6 +431,46 @@ var _ = Describe("GetUacInfo", func() {
 	})
 })
 
+var _ = Describe("GetInstruments", func() {
+	var (
+		uacGenerator = &uacgenerator.UacGenerator{
+			Context: context.Background(),
+		}
+		mockDatastore *mocks.Datastore
+	)
+
+	BeforeEach(func() {
+		mockDatastore = &mocks.Datastore{}
+
+		uacGenerator.DatastoreClient = mockDatastore
+
+		mockDatastore.On("GetAll",
+			uacGenerator.Context,
+			mock.AnythingOfTypeArgument("*datastore.Query"),
+			mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+		).Once().Return(
+			func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
+				uacInfos := dst.(*[]*uacgenerator.UacInfo)
+				*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+					InstrumentName: "foo",
+				})
+				*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+					InstrumentName: "bar",
+				})
+				return []*datastore.Key{}
+			},
+			func(ctx context.Context, qry *datastore.Query, dst interface{}) error {
+				return nil
+			})
+	})
+
+	It("Returns a list of instrument names", func() {
+		instrumentNames, err := uacGenerator.GetInstruments()
+		Expect(err).To(BeNil())
+		Expect(instrumentNames).To(Equal([]string{"foo", "bar"}))
+	})
+})
+
 var _ = Describe("IncrementPostcodeAttempts", func() {
 	var (
 		uacGenerator = &uacgenerator.UacGenerator{
