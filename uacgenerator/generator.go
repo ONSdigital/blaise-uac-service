@@ -38,6 +38,7 @@ type UacGeneratorInterface interface {
 	GetAllUacs(string) (Uacs, error)
 	GetUacCount(string) (int, error)
 	GetUacInfo(string) (*UacInfo, error)
+	GetInstruments() ([]string, error)
 	IncrementPostcodeAttempts(string) (*UacInfo, error)
 	ResetPostcodeAttempts(string) (*UacInfo, error)
 	AdminDelete(string) error
@@ -186,6 +187,21 @@ func (uacGenerator *UacGenerator) GetUacInfo(uac string) (*UacInfo, error) {
 	return uacInfo, nil
 }
 
+func (uacGenerator *UacGenerator) GetInstruments() ([]string, error) {
+	var (
+		uacInfos        []*UacInfo
+		instrumentNames []string
+	)
+	_, err := uacGenerator.DatastoreClient.GetAll(uacGenerator.Context, uacGenerator.instrumentNamesQuery(), &uacInfos)
+	if err != nil {
+		return nil, err
+	}
+	for _, uacInfo := range uacInfos {
+		instrumentNames = append(instrumentNames, uacInfo.InstrumentName)
+	}
+	return instrumentNames, nil
+}
+
 func (uacGenerator *UacGenerator) IncrementPostcodeAttempts(uac string) (*UacInfo, error) {
 	uacInfo, err := uacGenerator.GetUacInfo(uac)
 	if err != nil {
@@ -265,6 +281,12 @@ func (uacGenerator *UacGenerator) instrumentCaseQuery(instrumentName, caseID str
 func (uacGenerator *UacGenerator) instrumentQuery(instrumentName string) *datastore.Query {
 	query := datastore.NewQuery(UACKIND)
 	return query.Filter("instrument_name =", strings.ToLower(instrumentName))
+}
+
+func (uacGenerator *UacGenerator) instrumentNamesQuery() *datastore.Query {
+	query := datastore.NewQuery(UACKIND)
+	query = query.Project("instrument_name")
+	return query.DistinctOn("instrument_name")
 }
 
 func chunkDatastoreKeys(keys []*datastore.Key) [][]*datastore.Key {

@@ -42,6 +42,7 @@ func (uacController *UacController) AddRoutes(httpRouter *gin.Engine) {
 		uacsGroup.POST("/uac/postcode/attempts", uacController.IncrementPostcodeAttempts)
 		uacsGroup.DELETE("/uac/postcode/attempts", uacController.ResetPostcodeAttempts)
 		uacsGroup.DELETE("/admin/instrument/:instrumentName", uacController.AdminDeleteEndpoint)
+		uacsGroup.GET("/instruments", uacController.ListInstrumentsEndpoint)
 	}
 }
 
@@ -106,10 +107,10 @@ func (uacController *UacController) UACGenerateEndpoint(context *gin.Context) {
 	context.JSON(http.StatusOK, uacs)
 }
 
-func (UacController *UacController) UACGetAllEndpoint(context *gin.Context) {
+func (uacController *UacController) UACGetAllEndpoint(context *gin.Context) {
 	instrumentName := context.Param("instrumentName")
 
-	uacs, err := UacController.UacGenerator.GetAllUacs(instrumentName)
+	uacs, err := uacController.UacGenerator.GetAllUacs(instrumentName)
 	if err != nil {
 		context.AbortWithError(http.StatusInternalServerError, err)
 		return
@@ -118,10 +119,19 @@ func (UacController *UacController) UACGetAllEndpoint(context *gin.Context) {
 	context.JSON(http.StatusOK, uacs)
 }
 
-func (UacController *UacController) UACCountEndpoint(context *gin.Context) {
+func (uacController *UacController) ListInstrumentsEndpoint(context *gin.Context) {
+	instrumentNames, err := uacController.UacGenerator.GetInstruments()
+	if err != nil {
+		context.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	context.JSON(http.StatusOK, instrumentNames)
+}
+
+func (uacController *UacController) UACCountEndpoint(context *gin.Context) {
 	instrumentName := context.Param("instrumentName")
 
-	uacCount, err := UacController.UacGenerator.GetUacCount(instrumentName)
+	uacCount, err := uacController.UacGenerator.GetUacCount(instrumentName)
 	if err != nil {
 		context.AbortWithError(http.StatusInternalServerError, err)
 		return
