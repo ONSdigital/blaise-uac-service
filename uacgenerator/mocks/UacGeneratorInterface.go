@@ -41,21 +41,44 @@ func (_m *UacGeneratorInterface) Generate(_a0 string, _a1 []string) error {
 }
 
 // GetAllUacs provides a mock function with given fields: _a0
-func (_m *UacGeneratorInterface) GetAllUacs(_a0 string) (map[string]*uacgenerator.UacInfo, error) {
+func (_m *UacGeneratorInterface) GetAllUacs(_a0 string) (uacgenerator.Uacs, error) {
 	ret := _m.Called(_a0)
 
-	var r0 map[string]*uacgenerator.UacInfo
-	if rf, ok := ret.Get(0).(func(string) map[string]*uacgenerator.UacInfo); ok {
+	var r0 uacgenerator.Uacs
+	if rf, ok := ret.Get(0).(func(string) uacgenerator.Uacs); ok {
 		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[string]*uacgenerator.UacInfo)
+			r0 = ret.Get(0).(uacgenerator.Uacs)
 		}
 	}
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string) error); ok {
 		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetInstruments provides a mock function with given fields:
+func (_m *UacGeneratorInterface) GetInstruments() ([]string, error) {
+	ret := _m.Called()
+
+	var r0 []string
+	if rf, ok := ret.Get(0).(func() []string); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -86,6 +109,52 @@ func (_m *UacGeneratorInterface) GetUacCount(_a0 string) (int, error) {
 
 // GetUacInfo provides a mock function with given fields: _a0
 func (_m *UacGeneratorInterface) GetUacInfo(_a0 string) (*uacgenerator.UacInfo, error) {
+	ret := _m.Called(_a0)
+
+	var r0 *uacgenerator.UacInfo
+	if rf, ok := ret.Get(0).(func(string) *uacgenerator.UacInfo); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*uacgenerator.UacInfo)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// IncrementPostcodeAttempts provides a mock function with given fields: _a0
+func (_m *UacGeneratorInterface) IncrementPostcodeAttempts(_a0 string) (*uacgenerator.UacInfo, error) {
+	ret := _m.Called(_a0)
+
+	var r0 *uacgenerator.UacInfo
+	if rf, ok := ret.Get(0).(func(string) *uacgenerator.UacInfo); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*uacgenerator.UacInfo)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ResetPostcodeAttempts provides a mock function with given fields: _a0
+func (_m *UacGeneratorInterface) ResetPostcodeAttempts(_a0 string) (*uacgenerator.UacInfo, error) {
 	ret := _m.Called(_a0)
 
 	var r0 *uacgenerator.UacInfo
