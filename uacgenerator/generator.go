@@ -36,6 +36,7 @@ type Datastore interface {
 type UacGeneratorInterface interface {
 	Generate(string, []string) error
 	GetAllUacs(string) (Uacs, error)
+	GetAllUacsByCaseID(string) (Uacs, error)
 	GetUacCount(string) (int, error)
 	GetUacInfo(string) (*UacInfo, error)
 	GetInstruments() ([]string, error)
@@ -64,12 +65,16 @@ type UacInfo struct {
 	PostcodeAttemptTimestamp string         `json:"postcode_attempt_timestamp" datastore:"postcode_attempt_timestamp"`
 	UacChunks                *UacChunks     `json:"uac_chunks,omitempty" datastore:"-"`
 	UAC                      *datastore.Key `json:"-" datastore:"__key__"`
+	FullUAC                  string         `json:"-" datastore:"-"`
 }
 
 type Uacs map[string]*UacInfo
 
 func (uacs Uacs) BuildUacChunks() {
 	for uac, uacInfo := range uacs {
+		if uacInfo.FullUAC != "" {
+			uac = uacInfo.FullUAC
+		}
 		uacInfo.UacChunks = ChunkUAC(uac)
 	}
 }
@@ -170,6 +175,23 @@ func (uacGenerator *UacGenerator) GetAllUacs(instrumentName string) (Uacs, error
 	uacs := make(Uacs)
 	for _, uacInfo := range uacInfos {
 		uacs[uacInfo.UAC.Name] = uacInfo
+	}
+	return uacs, nil
+}
+
+func (uacGenerator *UacGenerator) GetAllUacsByCaseID(instrumentName string) (Uacs, error) {
+	var uacInfos []*UacInfo
+	_, err := uacGenerator.DatastoreClient.GetAll(uacGenerator.Context, uacGenerator.instrumentQuery(instrumentName), &uacInfos)
+	if err != nil {
+		return nil, err
+	}
+	uacs := make(Uacs)
+	for _, uacInfo := range uacInfos {
+		uacInfo.FullUAC = uacInfo.UAC.Name
+		uacs[uacInfo.CaseID] = uacInfo
+	}
+	if len(uacs) != len(uacInfos) {
+		return nil, fmt.Errorf("Fewer case ids than uacs, must be duplicate case ids")
 	}
 	return uacs, nil
 }
