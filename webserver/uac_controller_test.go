@@ -152,6 +152,38 @@ var _ = Describe("UAC Controller", func() {
 		})
 	})
 
+	Describe("GET /uacs/instrument/:instrumentName/bycaseid", func() {
+		var (
+			httpRecorder *httptest.ResponseRecorder
+		)
+
+		JustBeforeEach(func() {
+			httpRecorder = httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/uacs/instrument/test123/bycaseid", nil)
+			httpRouter.ServeHTTP(httpRecorder, req)
+		})
+
+		BeforeEach(func() {
+			mockUacGenerator.On("GetAllUacsByCaseID", "test123").Return(uacgenerator.Uacs{
+				"12452": {
+					InstrumentName: "test123",
+					CaseID:         "12452",
+					FullUAC:        "125634896985",
+				},
+				"65858": {
+					InstrumentName: "test123",
+					CaseID:         "65858",
+					FullUAC:        "78945612309",
+				},
+			}, nil)
+		})
+
+		It("Gets all UACs for an installed instrument", func() {
+			Expect(httpRecorder.Code).To(Equal(http.StatusOK))
+			Expect(httpRecorder.Body.String()).To(Equal(`{"12452":{"instrument_name":"test123","case_id":"12452","postcode_attempts":0,"postcode_attempt_timestamp":"","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"}},"65858":{"instrument_name":"test123","case_id":"65858","postcode_attempts":0,"postcode_attempt_timestamp":"","uac_chunks":{"uac1":"7894","uac2":"5612","uac3":"309"}}}`))
+		})
+	})
+
 	Describe("/uacs/instrument/:instrumentName/count", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
