@@ -80,6 +80,9 @@ func (uacs Uacs) BuildUacChunks() {
 }
 
 func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt int) (string, error) {
+	if caseID == "" {
+		return "", fmt.Errorf("Cannot generate UACs for blank caseIDs")
+	}
 	if attempt >= 10 {
 		return "", fmt.Errorf("Could not generate a unique UAC in 10 attempts")
 	}
