@@ -54,6 +54,14 @@ var _ = Describe("NewUac", func() {
 		})
 	})
 
+	Context("when a caseID is blank", func() {
+		It("returns an error", func() {
+			uac, err := uacGenerator.NewUac(instrumentName, "", 0)
+			Expect(uac).To(BeEmpty())
+			Expect(err).To(MatchError("Cannot generate UACs for blank caseIDs"))
+		})
+	})
+
 	Context("when a generated UAC already exists in datastore", func() {
 		var mockDatastore *mocks.Datastore
 		BeforeEach(func() {
