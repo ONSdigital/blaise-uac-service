@@ -36,6 +36,7 @@ func (uacController *UacController) AddRoutes(httpRouter *gin.Engine) {
 	{
 		uacsGroup.POST("/instrument/:instrumentName", uacController.UACInstrumentGenerateEndpoint)
 		uacsGroup.GET("/instrument/:instrumentName", uacController.UACGetAllEndpoint)
+		uacsGroup.GET("/instrument/:instrumentName/bycaseid", uacController.UACGetAllByCaseIDEndpoint)
 		uacsGroup.GET("/instrument/:instrumentName/count", uacController.UACCountEndpoint)
 		uacsGroup.POST("/generate", uacController.UACGenerateEndpoint)
 		uacsGroup.POST("/uac", uacController.GetUacInfoEndpoint)
@@ -111,6 +112,18 @@ func (uacController *UacController) UACGetAllEndpoint(context *gin.Context) {
 	instrumentName := context.Param("instrumentName")
 
 	uacs, err := uacController.UacGenerator.GetAllUacs(instrumentName)
+	if err != nil {
+		context.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	uacs.BuildUacChunks()
+	context.JSON(http.StatusOK, uacs)
+}
+
+func (uacController *UacController) UACGetAllByCaseIDEndpoint(context *gin.Context) {
+	instrumentName := context.Param("instrumentName")
+
+	uacs, err := uacController.UacGenerator.GetAllUacsByCaseID(instrumentName)
 	if err != nil {
 		context.AbortWithError(http.StatusInternalServerError, err)
 		return

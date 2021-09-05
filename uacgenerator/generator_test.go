@@ -54,6 +54,14 @@ var _ = Describe("NewUac", func() {
 		})
 	})
 
+	Context("when a caseID is blank", func() {
+		It("returns an error", func() {
+			uac, err := uacGenerator.NewUac(instrumentName, "", 0)
+			Expect(uac).To(BeEmpty())
+			Expect(err).To(MatchError("Cannot generate UACs for blank caseIDs"))
+		})
+	})
+
 	Context("when a generated UAC already exists in datastore", func() {
 		var mockDatastore *mocks.Datastore
 		BeforeEach(func() {
@@ -364,8 +372,99 @@ var _ = Describe("GetAllUacs", func() {
 	})
 })
 
-var _ = Describe("GetUacCount", func() {
+var _ = Describe("GetAllUacs", func() {
+	var (
+		uacGenerator = &uacgenerator.UacGenerator{
+			Context: context.Background(),
+		}
+		instrumentName = "lolcat"
+		mockDatastore  *mocks.Datastore
+	)
 
+	Context("when there are duplicate case ids", func() {
+		BeforeEach(func() {
+			mockDatastore = &mocks.Datastore{}
+
+			uacGenerator.DatastoreClient = mockDatastore
+
+			mockDatastore.On("GetAll",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Query"),
+				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+			).Once().Return(
+				func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
+					uacInfos := dst.(*[]*uacgenerator.UacInfo)
+					key := uacGenerator.UacKey("foobar")
+					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+						InstrumentName: instrumentName,
+						CaseID:         "12343",
+						UAC:            key,
+					})
+					key2 := uacGenerator.UacKey("foobar2")
+					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+						InstrumentName: instrumentName,
+						CaseID:         "12343",
+						UAC:            key2,
+					})
+					return []*datastore.Key{key, key2}
+				},
+				func(ctx context.Context, qry *datastore.Query, dst interface{}) error {
+					return nil
+				})
+		})
+
+		It("returns an error", func() {
+			uacs, err := uacGenerator.GetAllUacsByCaseID(instrumentName)
+			Expect(uacs).To(BeNil())
+			Expect(err).To(MatchError("Fewer case ids than uacs, must be duplicate case ids"))
+		})
+	})
+
+	Context("when there are no duplicate case ids", func() {
+		BeforeEach(func() {
+			mockDatastore = &mocks.Datastore{}
+
+			uacGenerator.DatastoreClient = mockDatastore
+
+			mockDatastore.On("GetAll",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Query"),
+				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+			).Once().Return(
+				func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
+					uacInfos := dst.(*[]*uacgenerator.UacInfo)
+					key := uacGenerator.UacKey("foobar")
+					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+						InstrumentName: instrumentName,
+						CaseID:         "12343",
+						UAC:            key,
+					})
+					key2 := uacGenerator.UacKey("foobar2")
+					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+						InstrumentName: instrumentName,
+						CaseID:         "56764",
+						UAC:            key2,
+					})
+					return []*datastore.Key{key, key2}
+				},
+				func(ctx context.Context, qry *datastore.Query, dst interface{}) error {
+					return nil
+				})
+		})
+
+		It("returns a map of all uacs with info", func() {
+			uacs, err := uacGenerator.GetAllUacsByCaseID(instrumentName)
+			Expect(uacs).To(HaveLen(2))
+			Expect(uacs["12343"].InstrumentName).To(Equal(instrumentName))
+			Expect(uacs["12343"].CaseID).To(Equal("12343"))
+			Expect(uacs["56764"].InstrumentName).To(Equal(instrumentName))
+			Expect(uacs["56764"].CaseID).To(Equal("56764"))
+			Expect(err).To(BeNil())
+		})
+	})
+})
+
+var _ = Describe("GetUacCount", func() {
 	var (
 		uacGenerator = &uacgenerator.UacGenerator{
 			Context: context.Background(),
