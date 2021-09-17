@@ -92,7 +92,7 @@ var _ = Describe("UAC Controller", func() {
 
 				It("generates and return a bunch of UACs", func() {
 					Expect(httpRecorder.Code).To(Equal(http.StatusOK))
-					Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452","postcode_attempts":0,"postcode_attempt_timestamp":"","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"}}}`))
+					Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"}}}`))
 				})
 			})
 
@@ -136,7 +136,7 @@ var _ = Describe("UAC Controller", func() {
 
 			It("Gets all UACs for an installed instrument", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusOK))
-				Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452","postcode_attempts":0,"postcode_attempt_timestamp":"","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"}},"78945612309":{"instrument_name":"test123","case_id":"65858","postcode_attempts":0,"postcode_attempt_timestamp":"","uac_chunks":{"uac1":"7894","uac2":"5612","uac3":"309"}}}`))
+				Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"}},"78945612309":{"instrument_name":"test123","case_id":"65858","uac_chunks":{"uac1":"7894","uac2":"5612","uac3":"309"}}}`))
 			})
 		})
 
@@ -180,7 +180,7 @@ var _ = Describe("UAC Controller", func() {
 
 		It("Gets all UACs for an installed instrument", func() {
 			Expect(httpRecorder.Code).To(Equal(http.StatusOK))
-			Expect(httpRecorder.Body.String()).To(Equal(`{"12452":{"instrument_name":"test123","case_id":"12452","postcode_attempts":0,"postcode_attempt_timestamp":"","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"}},"65858":{"instrument_name":"test123","case_id":"65858","postcode_attempts":0,"postcode_attempt_timestamp":"","uac_chunks":{"uac1":"7894","uac2":"5612","uac3":"309"}}}`))
+			Expect(httpRecorder.Body.String()).To(Equal(`{"12452":{"instrument_name":"test123","case_id":"12452","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"}},"65858":{"instrument_name":"test123","case_id":"65858","uac_chunks":{"uac1":"7894","uac2":"5612","uac3":"309"}}}`))
 		})
 	})
 
@@ -251,7 +251,7 @@ var _ = Describe("UAC Controller", func() {
 
 			It("generates and return a bunch of UACs", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusOK))
-				Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452","postcode_attempts":0,"postcode_attempt_timestamp":"","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"}}}`))
+				Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"}}}`))
 			})
 		})
 
@@ -312,7 +312,7 @@ var _ = Describe("UAC Controller", func() {
 
 			It("Gets UAC Info for a valid UAC Code", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusOK))
-				Expect(httpRecorder.Body.String()).To(Equal(`{"instrument_name":"test123","case_id":"12452","postcode_attempts":0,"postcode_attempt_timestamp":""}`))
+				Expect(httpRecorder.Body.String()).To(Equal(`{"instrument_name":"test123","case_id":"12452"}`))
 			})
 		})
 
@@ -342,132 +342,6 @@ var _ = Describe("UAC Controller", func() {
 			BeforeEach(func() {
 				requestBody = bytes.NewReader([]byte(`{"uac":"98765432101"}`))
 				mockUacGenerator.On("GetUacInfo", "98765432101").Return(nil, datastore.ErrNoSuchEntity)
-			})
-
-			It("Returns an empty body and a not found status", func() {
-				Expect(httpRecorder.Code).To(Equal(http.StatusNotFound))
-				Expect(httpRecorder.Body.String()).To(Equal("null"))
-			})
-		})
-	})
-
-	Describe("POST /uacs/uac/attempts", func() {
-		var (
-			httpRecorder *httptest.ResponseRecorder
-			requestBody  io.Reader
-		)
-
-		JustBeforeEach(func() {
-			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("POST", "/uacs/uac/postcode/attempts", requestBody)
-			httpRouter.ServeHTTP(httpRecorder, req)
-		})
-
-		Context("A valid UAC increments attempts and returns a valid UACInfo for that code", func() {
-			BeforeEach(func() {
-				requestBody = bytes.NewReader([]byte(`{"uac":"98765432101"}`))
-				mockUacGenerator.On("IncrementPostcodeAttempts", "98765432101").Return(&uacgenerator.UacInfo{
-					InstrumentName:   "test123",
-					CaseID:           "12452",
-					PostcodeAttempts: 2,
-				}, nil)
-			})
-
-			It("Gets UAC Info for a valid UAC Code", func() {
-				Expect(httpRecorder.Code).To(Equal(http.StatusOK))
-				Expect(httpRecorder.Body.String()).To(Equal(`{"instrument_name":"test123","case_id":"12452","postcode_attempts":2,"postcode_attempt_timestamp":""}`))
-			})
-		})
-
-		Context("Returns bad request if no body is posted", func() {
-			BeforeEach(func() {
-				requestBody = bytes.NewReader([]byte(``))
-			})
-
-			It("Returns an empty body and a bad request status", func() {
-				Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
-				Expect(httpRecorder.Body.String()).To(Equal("null"))
-			})
-		})
-
-		Context("Returns bad request if no body is invalid JSON", func() {
-			BeforeEach(func() {
-				requestBody = bytes.NewReader([]byte(`{"blah":Blah}`))
-			})
-
-			It("Returns an empty body and a bad request status", func() {
-				Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
-				Expect(httpRecorder.Body.String()).To(Equal("null"))
-			})
-		})
-
-		Context("Returns bad request if no body is invalid JSON", func() {
-			BeforeEach(func() {
-				requestBody = bytes.NewReader([]byte(`{"uac":"98765432101"}`))
-				mockUacGenerator.On("IncrementPostcodeAttempts", "98765432101").Return(nil, datastore.ErrNoSuchEntity)
-			})
-
-			It("Returns an empty body and a not found status", func() {
-				Expect(httpRecorder.Code).To(Equal(http.StatusNotFound))
-				Expect(httpRecorder.Body.String()).To(Equal("null"))
-			})
-		})
-	})
-
-	Describe("DELETE /uacs/uac/attempts", func() {
-		var (
-			httpRecorder *httptest.ResponseRecorder
-			requestBody  io.Reader
-		)
-
-		JustBeforeEach(func() {
-			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("DELETE", "/uacs/uac/postcode/attempts", requestBody)
-			httpRouter.ServeHTTP(httpRecorder, req)
-		})
-
-		Context("A valid UAC resets attempts and returns a valid UACInfo for that code", func() {
-			BeforeEach(func() {
-				requestBody = bytes.NewReader([]byte(`{"uac":"98765432101"}`))
-				mockUacGenerator.On("ResetPostcodeAttempts", "98765432101").Return(&uacgenerator.UacInfo{
-					InstrumentName:   "test123",
-					CaseID:           "12452",
-					PostcodeAttempts: 0,
-				}, nil)
-			})
-
-			It("Gets UAC Info for a valid UAC Code", func() {
-				Expect(httpRecorder.Code).To(Equal(http.StatusOK))
-				Expect(httpRecorder.Body.String()).To(Equal(`{"instrument_name":"test123","case_id":"12452","postcode_attempts":0,"postcode_attempt_timestamp":""}`))
-			})
-		})
-
-		Context("Returns bad request if no body is posted", func() {
-			BeforeEach(func() {
-				requestBody = bytes.NewReader([]byte(``))
-			})
-
-			It("Returns an empty body and a bad request status", func() {
-				Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
-				Expect(httpRecorder.Body.String()).To(Equal("null"))
-			})
-		})
-
-		Context("Returns bad request if no body is invalid JSON", func() {
-			BeforeEach(func() {
-				requestBody = bytes.NewReader([]byte(`{"blah":Blah}`))
-			})
-
-			It("Returns an empty body and a bad request status", func() {
-				Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
-				Expect(httpRecorder.Body.String()).To(Equal("null"))
-			})
-		})
-
-		Context("Returns bad request if no body is invalid JSON", func() {
-			BeforeEach(func() {
-				requestBody = bytes.NewReader([]byte(`{"uac":"98765432101"}`))
-				mockUacGenerator.On("ResetPostcodeAttempts", "98765432101").Return(nil, datastore.ErrNoSuchEntity)
 			})
 
 			It("Returns an empty body and a not found status", func() {

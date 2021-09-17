@@ -40,8 +40,6 @@ func (uacController *UacController) AddRoutes(httpRouter *gin.Engine) {
 		uacsGroup.GET("/instrument/:instrumentName/count", uacController.UACCountEndpoint)
 		uacsGroup.POST("/generate", uacController.UACGenerateEndpoint)
 		uacsGroup.POST("/uac", uacController.GetUacInfoEndpoint)
-		uacsGroup.POST("/uac/postcode/attempts", uacController.IncrementPostcodeAttempts)
-		uacsGroup.DELETE("/uac/postcode/attempts", uacController.ResetPostcodeAttempts)
 		uacsGroup.DELETE("/admin/instrument/:instrumentName", uacController.AdminDeleteEndpoint)
 		uacsGroup.GET("/instruments", uacController.ListInstrumentsEndpoint)
 	}
@@ -161,48 +159,6 @@ func (uacController *UacController) GetUacInfoEndpoint(context *gin.Context) {
 	}
 
 	uacInfo, err := uacController.UacGenerator.GetUacInfo(uac.UAC)
-	if err != nil {
-		if err == datastore.ErrNoSuchEntity {
-			context.JSON(http.StatusNotFound, nil)
-			return
-		}
-		log.Println(err)
-		context.AbortWithStatusJSON(http.StatusInternalServerError, nil)
-		return
-	}
-	context.JSON(http.StatusOK, uacInfo)
-}
-
-func (uacController *UacController) IncrementPostcodeAttempts(context *gin.Context) {
-	uac, err := uacController.getUacRequest(context)
-	if err != nil {
-		log.Println(err)
-		context.AbortWithStatusJSON(http.StatusBadRequest, nil)
-		return
-	}
-
-	uacInfo, err := uacController.UacGenerator.IncrementPostcodeAttempts(uac.UAC)
-	if err != nil {
-		if err == datastore.ErrNoSuchEntity {
-			context.JSON(http.StatusNotFound, nil)
-			return
-		}
-		log.Println(err)
-		context.AbortWithStatusJSON(http.StatusInternalServerError, nil)
-		return
-	}
-	context.JSON(http.StatusOK, uacInfo)
-}
-
-func (uacController *UacController) ResetPostcodeAttempts(context *gin.Context) {
-	uac, err := uacController.getUacRequest(context)
-	if err != nil {
-		log.Println(err)
-		context.AbortWithStatusJSON(http.StatusBadRequest, nil)
-		return
-	}
-
-	uacInfo, err := uacController.UacGenerator.ResetPostcodeAttempts(uac.UAC)
 	if err != nil {
 		if err == datastore.ErrNoSuchEntity {
 			context.JSON(http.StatusNotFound, nil)
