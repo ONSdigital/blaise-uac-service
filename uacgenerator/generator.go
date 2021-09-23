@@ -53,14 +53,15 @@ type UacChunks struct {
 	UAC1 string `json:"uac1"`
 	UAC2 string `json:"uac2"`
 	UAC3 string `json:"uac3"`
+	UAC4 string `json:"uac4,omitempty"`
 }
 
 type UacInfo struct {
-	InstrumentName           string         `json:"instrument_name" datastore:"instrument_name"`
-	CaseID                   string         `json:"case_id" datastore:"case_id"`
-	UacChunks                *UacChunks     `json:"uac_chunks,omitempty" datastore:"-"`
-	UAC                      *datastore.Key `json:"-" datastore:"__key__"`
-	FullUAC                  string         `json:"-" datastore:"-"`
+	InstrumentName string         `json:"instrument_name" datastore:"instrument_name"`
+	CaseID         string         `json:"case_id" datastore:"case_id"`
+	UacChunks      *UacChunks     `json:"uac_chunks,omitempty" datastore:"-"`
+	UAC            *datastore.Key `json:"-" datastore:"__key__"`
+	FullUAC        string         `json:"-" datastore:"-"`
 }
 
 type Uacs map[string]*UacInfo
@@ -74,6 +75,10 @@ func (uacs Uacs) BuildUacChunks() {
 	}
 }
 
+func (uacGenerator *UacGenerator) GenerateUac12() string {
+	return fmt.Sprintf("%012d", rand.Int63n(1e12))
+}
+
 func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt int) (string, error) {
 	if caseID == "" {
 		return "", fmt.Errorf("Cannot generate UACs for blank caseIDs")
@@ -81,7 +86,7 @@ func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt 
 	if attempt >= 10 {
 		return "", fmt.Errorf("Could not generate a unique UAC in 10 attempts")
 	}
-	uac := fmt.Sprintf("%012d", rand.Int63n(1e12))
+	uac := uacGenerator.GenerateUac12()
 	// Cannot workout how the hell to mock/ test this :(
 	newUACMutation := datastore.NewInsert(uacGenerator.UacKey(uac), &UacInfo{
 		InstrumentName: strings.ToLower(instrumentName),
@@ -255,7 +260,11 @@ func ChunkUAC(uac string) *UacChunks {
 		}
 		chunks = append(chunks, string(runes[i:nn]))
 	}
-	return &UacChunks{UAC1: chunks[0], UAC2: chunks[1], UAC3: chunks[2]}
+	uacChunks := &UacChunks{UAC1: chunks[0], UAC2: chunks[1], UAC3: chunks[2]}
+	if len(chunks) >= 4 {
+		uacChunks.UAC4 = chunks[3]
+	}
+	return uacChunks
 }
 
 func (uacGenerator *UacGenerator) adminDeleteChunk(uacKeyChunk []*datastore.Key, concurrent goccm.ConcurrencyManager) {

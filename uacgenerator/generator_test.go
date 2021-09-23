@@ -576,6 +576,7 @@ var _ = DescribeTable("ChunkUAC",
 	},
 	Entry("123456781234", "123456781234", uacgenerator.UacChunks{UAC1: "1234", UAC2: "5678", UAC3: "1234"}),
 	Entry("111122223333", "111122223333", uacgenerator.UacChunks{UAC1: "1111", UAC2: "2222", UAC3: "3333"}),
+	Entry("11112222333344444", "1111222233334444", uacgenerator.UacChunks{UAC1: "1111", UAC2: "2222", UAC3: "3333", UAC4: "4444"}),
 )
 
 var _ = Describe("Uacs", func() {
