@@ -12,7 +12,7 @@ require (
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.14.0
 	github.com/stretchr/testify v1.6.1
-	github.com/vektra/mockery/v2 v2.9.0 // indirect
+	github.com/vektra/mockery/v2 v2.9.4 // indirect
 	github.com/zenthangplus/goccm v0.0.0-20200608171100-39e9e08b694a
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/api v0.50.0 // indirect
