@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
-	"time"
 
 	"cloud.google.com/go/datastore"
 	"github.com/ONSDigital/blaise-uac-service/blaiserestapi"
@@ -35,17 +33,12 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	rand.Seed(time.Now().UTC().UnixNano())
-
 	blaiseRestAPI := &blaiserestapi.BlaiseRestApi{
 		Serverpark: config.Serverpark,
 		BaseUrl:    config.BlaiseBaseUrl,
 		Client:     &http.Client{},
 	}
-	uacGenerator := &uacgenerator.UacGenerator{
-		Context:         ctx,
-		DatastoreClient: datastoreClient,
-	}
+	uacGenerator := uacgenerator.NewUacGenerator(datastoreClient)
 
 	server := &webserver.Server{
 		BlaiseRestApi: blaiseRestAPI,

@@ -3,8 +3,6 @@ package uacgenerator_test
 import (
 	"context"
 	"fmt"
-	"math/rand"
-	"time"
 
 	"cloud.google.com/go/datastore"
 	"github.com/ONSDigital/blaise-uac-service/uacgenerator"
@@ -19,16 +17,10 @@ import (
 
 var _ = Describe("NewUac", func() {
 	var (
-		uacGenerator = &uacgenerator.UacGenerator{
-			Context: context.Background(),
-		}
+		uacGenerator   *uacgenerator.UacGenerator
 		instrumentName = "lolcat"
 		caseID         = "74628568"
 	)
-
-	BeforeEach(func() {
-		rand.Seed(time.Now().UTC().UnixNano())
-	})
 
 	Context("Generation rules", func() {
 		var mockDatastore *mocks.Datastore
@@ -36,7 +28,7 @@ var _ = Describe("NewUac", func() {
 		BeforeEach(func() {
 			mockDatastore = &mocks.Datastore{}
 
-			uacGenerator.DatastoreClient = mockDatastore
+			uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
@@ -67,7 +59,7 @@ var _ = Describe("NewUac", func() {
 		BeforeEach(func() {
 			mockDatastore = &mocks.Datastore{}
 
-			uacGenerator.DatastoreClient = mockDatastore
+			uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
@@ -90,7 +82,7 @@ var _ = Describe("NewUac", func() {
 		BeforeEach(func() {
 			mockDatastore = &mocks.Datastore{}
 
-			uacGenerator.DatastoreClient = mockDatastore
+			uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
@@ -109,7 +101,7 @@ var _ = Describe("NewUac", func() {
 		BeforeEach(func() {
 			mockDatastore = &mocks.Datastore{}
 
-			uacGenerator.DatastoreClient = mockDatastore
+			uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
@@ -139,9 +131,7 @@ var _ = Describe("UacKey", func() {
 
 var _ = Describe("UacExistsForCase", func() {
 	var (
-		uacGenerator = &uacgenerator.UacGenerator{
-			Context: context.Background(),
-		}
+		uacGenerator   *uacgenerator.UacGenerator
 		instrumentName = "lolcat"
 		caseID         = "74628568"
 	)
@@ -150,7 +140,7 @@ var _ = Describe("UacExistsForCase", func() {
 		BeforeEach(func() {
 			mockDatastore := &mocks.Datastore{}
 
-			uacGenerator.DatastoreClient = mockDatastore
+			uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
@@ -171,7 +161,7 @@ var _ = Describe("UacExistsForCase", func() {
 		BeforeEach(func() {
 			mockDatastore := &mocks.Datastore{}
 
-			uacGenerator.DatastoreClient = mockDatastore
+			uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
@@ -191,9 +181,7 @@ var _ = Describe("UacExistsForCase", func() {
 
 var _ = Describe("Generate", func() {
 	var (
-		uacGenerator = &uacgenerator.UacGenerator{
-			Context: context.Background(),
-		}
+		uacGenerator   *uacgenerator.UacGenerator
 		instrumentName = "lolcat"
 		caseIDs        = []string{
 			"74628568",
@@ -209,7 +197,7 @@ var _ = Describe("Generate", func() {
 		BeforeEach(func() {
 			mockDatastore = &mocks.Datastore{}
 
-			uacGenerator.DatastoreClient = mockDatastore
+			uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
@@ -235,7 +223,7 @@ var _ = Describe("Generate", func() {
 		BeforeEach(func() {
 			mockDatastore = &mocks.Datastore{}
 
-			uacGenerator.DatastoreClient = mockDatastore
+			uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
@@ -266,7 +254,7 @@ var _ = Describe("Generate", func() {
 		BeforeEach(func() {
 			mockDatastore = &mocks.Datastore{}
 
-			uacGenerator.DatastoreClient = mockDatastore
+			uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
@@ -298,7 +286,7 @@ var _ = Describe("Generate", func() {
 		BeforeEach(func() {
 			mockDatastore = &mocks.Datastore{}
 
-			uacGenerator.DatastoreClient = mockDatastore
+			uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
@@ -323,9 +311,7 @@ var _ = Describe("Generate", func() {
 
 var _ = Describe("GetAllUacs", func() {
 	var (
-		uacGenerator = &uacgenerator.UacGenerator{
-			Context: context.Background(),
-		}
+		uacGenerator   *uacgenerator.UacGenerator
 		instrumentName = "lolcat"
 		mockDatastore  *mocks.Datastore
 	)
@@ -333,7 +319,7 @@ var _ = Describe("GetAllUacs", func() {
 	BeforeEach(func() {
 		mockDatastore = &mocks.Datastore{}
 
-		uacGenerator.DatastoreClient = mockDatastore
+		uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 		mockDatastore.On("GetAll",
 			uacGenerator.Context,
@@ -374,9 +360,7 @@ var _ = Describe("GetAllUacs", func() {
 
 var _ = Describe("GetAllUacs", func() {
 	var (
-		uacGenerator = &uacgenerator.UacGenerator{
-			Context: context.Background(),
-		}
+		uacGenerator   *uacgenerator.UacGenerator
 		instrumentName = "lolcat"
 		mockDatastore  *mocks.Datastore
 	)
@@ -385,7 +369,7 @@ var _ = Describe("GetAllUacs", func() {
 		BeforeEach(func() {
 			mockDatastore = &mocks.Datastore{}
 
-			uacGenerator.DatastoreClient = mockDatastore
+			uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
@@ -424,7 +408,7 @@ var _ = Describe("GetAllUacs", func() {
 		BeforeEach(func() {
 			mockDatastore = &mocks.Datastore{}
 
-			uacGenerator.DatastoreClient = mockDatastore
+			uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
@@ -466,9 +450,7 @@ var _ = Describe("GetAllUacs", func() {
 
 var _ = Describe("GetUacCount", func() {
 	var (
-		uacGenerator = &uacgenerator.UacGenerator{
-			Context: context.Background(),
-		}
+		uacGenerator   *uacgenerator.UacGenerator
 		instrumentName = "lolcat"
 		mockDatastore  *mocks.Datastore
 	)
@@ -476,7 +458,7 @@ var _ = Describe("GetUacCount", func() {
 	BeforeEach(func() {
 		mockDatastore = &mocks.Datastore{}
 
-		uacGenerator.DatastoreClient = mockDatastore
+		uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 		mockDatastore.On("Count",
 			uacGenerator.Context,
@@ -493,9 +475,7 @@ var _ = Describe("GetUacCount", func() {
 
 var _ = Describe("GetUacInfo", func() {
 	var (
-		uacGenerator = &uacgenerator.UacGenerator{
-			Context: context.Background(),
-		}
+		uacGenerator   *uacgenerator.UacGenerator
 		instrumentName = "lolcat"
 		mockDatastore  *mocks.Datastore
 	)
@@ -503,7 +483,7 @@ var _ = Describe("GetUacInfo", func() {
 	BeforeEach(func() {
 		mockDatastore = &mocks.Datastore{}
 
-		uacGenerator.DatastoreClient = mockDatastore
+		uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 		mockDatastore.On("Get",
 			uacGenerator.Context,
@@ -532,16 +512,14 @@ var _ = Describe("GetUacInfo", func() {
 
 var _ = Describe("GetInstruments", func() {
 	var (
-		uacGenerator = &uacgenerator.UacGenerator{
-			Context: context.Background(),
-		}
+		uacGenerator  *uacgenerator.UacGenerator
 		mockDatastore *mocks.Datastore
 	)
 
 	BeforeEach(func() {
 		mockDatastore = &mocks.Datastore{}
 
-		uacGenerator.DatastoreClient = mockDatastore
+		uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
 
 		mockDatastore.On("GetAll",
 			uacGenerator.Context,

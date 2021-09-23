@@ -46,6 +46,7 @@ type UacGenerator struct {
 	DatastoreClient Datastore
 	Context         context.Context
 	GenerateError   map[string]error
+	Randomizer      *rand.Rand
 	mu              sync.Mutex
 }
 
@@ -75,8 +76,16 @@ func (uacs Uacs) BuildUacChunks() {
 	}
 }
 
+func NewUacGenerator(datastoreClient Datastore) *UacGenerator {
+	return &UacGenerator{
+		Context:         context.Background(),
+		Randomizer:      rand.New(cryptoSource{}),
+		DatastoreClient: datastoreClient,
+	}
+}
+
 func (uacGenerator *UacGenerator) GenerateUac12() string {
-	return fmt.Sprintf("%012d", rand.Int63n(1e12))
+	return fmt.Sprintf("%012d", uacGenerator.Randomizer.Int63n(1e12))
 }
 
 func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt int) (string, error) {
