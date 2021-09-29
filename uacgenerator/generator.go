@@ -242,6 +242,9 @@ func (uacGenerator *UacGenerator) AdminDelete(instrumentName string) error {
 	if err != nil {
 		return err
 	}
+	if len(instrumentUACKeys) == 0 {
+		return nil
+	}
 	uacKeyChunks := chunkDatastoreKeys(instrumentUACKeys)
 	concurrent := goccm.New(MAXCONCURRENT)
 	for _, uacKeyChunk := range uacKeyChunks {
