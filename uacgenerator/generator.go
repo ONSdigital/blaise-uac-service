@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	MAXCONCURRENT = 500
+	MAXCONCURRENT      = 500
+	APPROVEDCHARACTERS = "bcdfghjklmnpqrstvxz23456789"
 )
 
 //Generate mocks by running "go generate ./..."
@@ -87,6 +88,15 @@ func NewUacGenerator(datastoreClient Datastore) *UacGenerator {
 
 func (uacGenerator *UacGenerator) GenerateUac12() string {
 	return fmt.Sprintf("%012d", uacGenerator.Randomizer.Int63n(1e12))
+}
+
+func (uacGenerator *UacGenerator) GenerateUac16() string {
+
+	b := make([]byte, 16)
+	for i := range b {
+		b[i] = APPROVEDCHARACTERS[uacGenerator.Randomizer.Intn(len(APPROVEDCHARACTERS))]
+	}
+	return string(b)
 }
 
 func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt int) (string, error) {

@@ -15,6 +15,48 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var _ = Describe("GenerateUac12", func() {
+	var (
+		uacGenerator  *uacgenerator.UacGenerator
+		mockDatastore *mocks.Datastore
+	)
+
+	BeforeEach(func() {
+		uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
+	})
+
+	It("Generates a random 12 digit UAC", func() {
+		for i := 1; i <= 20; i++ {
+			uac := uacGenerator.GenerateUac12()
+
+			Expect(uac).To(MatchRegexp(`^\d{12}$`))
+		}
+	})
+})
+
+var _ = Describe("GenerateUac16", func() {
+	var (
+		uacGenerator  *uacgenerator.UacGenerator
+		mockDatastore *mocks.Datastore
+	)
+
+	BeforeEach(func() {
+		uacGenerator = uacgenerator.NewUacGenerator(mockDatastore)
+	})
+
+	It("Generates a random 16 alphanumeric UAC", func() {
+		var unapprovedCharacters = "aeiouyw01"
+		for i := 1; i <= 20; i++ {
+			uac := uacGenerator.GenerateUac16()
+
+			Expect(uac).To(MatchRegexp(fmt.Sprintf(`^[%s]{16}$`, uacgenerator.APPROVEDCHARACTERS)))
+
+			//Ensure does not contain unapproved characters
+			Expect(uac).ToNot(MatchRegexp(fmt.Sprintf(`^.*[%s]{1}.*$`, unapprovedCharacters)))
+		}
+	})
+})
+
 var _ = Describe("NewUac", func() {
 	var (
 		uacGenerator   *uacgenerator.UacGenerator
