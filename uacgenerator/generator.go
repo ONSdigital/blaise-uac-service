@@ -15,7 +15,6 @@ import (
 )
 
 const (
-	UACKIND       = "uac"
 	MAXCONCURRENT = 500
 )
 
@@ -43,6 +42,7 @@ type UacGeneratorInterface interface {
 }
 
 type UacGenerator struct {
+	UacKind         string
 	DatastoreClient Datastore
 	Context         context.Context
 	GenerateError   map[string]error
@@ -78,6 +78,7 @@ func (uacs Uacs) BuildUacChunks() {
 
 func NewUacGenerator(datastoreClient Datastore) *UacGenerator {
 	return &UacGenerator{
+		UacKind:         "uac",
 		Context:         context.Background(),
 		Randomizer:      rand.New(cryptoSource{}),
 		DatastoreClient: datastoreClient,
@@ -114,7 +115,7 @@ func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt 
 }
 
 func (uacGenerator *UacGenerator) UacKey(key string) *datastore.Key {
-	return datastore.NameKey(UACKIND, key, nil)
+	return datastore.NameKey(uacGenerator.UacKind, key, nil)
 }
 
 func (uacGenerator *UacGenerator) UacExistsForCase(instrumentName, caseID string) (bool, error) {
@@ -288,18 +289,18 @@ func (uacGenerator *UacGenerator) adminDeleteChunk(uacKeyChunk []*datastore.Key,
 }
 
 func (uacGenerator *UacGenerator) instrumentCaseQuery(instrumentName, caseID string) *datastore.Query {
-	query := datastore.NewQuery(UACKIND)
+	query := datastore.NewQuery(uacGenerator.UacKind)
 	query = query.Filter("instrument_name =", strings.ToLower(instrumentName))
 	return query.Filter("case_id = ", strings.ToLower(caseID))
 }
 
 func (uacGenerator *UacGenerator) instrumentQuery(instrumentName string) *datastore.Query {
-	query := datastore.NewQuery(UACKIND)
+	query := datastore.NewQuery(uacGenerator.UacKind)
 	return query.Filter("instrument_name =", strings.ToLower(instrumentName))
 }
 
 func (uacGenerator *UacGenerator) instrumentNamesQuery() *datastore.Query {
-	query := datastore.NewQuery(UACKIND)
+	query := datastore.NewQuery(uacGenerator.UacKind)
 	query = query.Project("instrument_name")
 	return query.DistinctOn("instrument_name")
 }

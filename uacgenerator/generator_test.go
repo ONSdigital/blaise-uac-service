@@ -124,7 +124,7 @@ var _ = Describe("UacKey", func() {
 	It("Generates a datastore named key of the correct kind", func() {
 		key := uacGenerator.UacKey("test123")
 
-		Expect(key.Kind).To(Equal(uacgenerator.UACKIND))
+		Expect(key.Kind).To(Equal(uacGenerator.UacKind))
 		Expect(key.Name).To(Equal("test123"))
 	})
 })
