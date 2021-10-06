@@ -8,8 +8,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ONSDigital/blaise-uac-service/types"
-
 	"cloud.google.com/go/datastore"
 	"github.com/zenthangplus/goccm"
 	"google.golang.org/grpc/codes"
@@ -33,9 +31,27 @@ type UacGeneratorInterface interface {
 	AdminDelete(string) error
 }
 
+//Generate mocks by running "go generate ./..."
+//go:generate mockery --name Datastore
+type Datastore interface {
+	Mutate(context.Context, ...*datastore.Mutation) ([]*datastore.Key, error)
+	GetAll(context.Context, *datastore.Query, interface{}) ([]*datastore.Key, error)
+	Count(context.Context, *datastore.Query) (int, error)
+	Get(context.Context, *datastore.Key, interface{}) error
+	DeleteMulti(context.Context, []*datastore.Key) error
+	Close() error
+}
+
+type UacChunks struct {
+	UAC1 string `json:"uac1"`
+	UAC2 string `json:"uac2"`
+	UAC3 string `json:"uac3"`
+	UAC4 string `json:"uac4,omitempty"`
+}
+
 type UacGenerator struct {
 	UacKind         string
-	DatastoreClient types.Datastore
+	DatastoreClient Datastore
 	Context         context.Context
 	GenerateError   map[string]error
 	Randomizer      *rand.Rand
@@ -43,11 +59,11 @@ type UacGenerator struct {
 }
 
 type UacInfo struct {
-	InstrumentName string           `json:"instrument_name" datastore:"instrument_name"`
-	CaseID         string           `json:"case_id" datastore:"case_id"`
-	UacChunks      *types.UacChunks `json:"uac_chunks,omitempty" datastore:"-"`
-	UAC            *datastore.Key   `json:"-" datastore:"__key__"`
-	FullUAC        string           `json:"-" datastore:"-"`
+	InstrumentName string         `json:"instrument_name" datastore:"instrument_name"`
+	CaseID         string         `json:"case_id" datastore:"case_id"`
+	UacChunks      *UacChunks     `json:"uac_chunks,omitempty" datastore:"-"`
+	UAC            *datastore.Key `json:"-" datastore:"__key__"`
+	FullUAC        string         `json:"-" datastore:"-"`
 }
 
 type Uacs map[string]*UacInfo
@@ -61,7 +77,7 @@ func (uacs Uacs) BuildUacChunks() {
 	}
 }
 
-func NewUacGenerator(datastoreClient types.Datastore, uacKind string) *UacGenerator {
+func NewUacGenerator(datastoreClient Datastore, uacKind string) *UacGenerator {
 	return &UacGenerator{
 		UacKind:         uacKind,
 		Context:         context.Background(),
@@ -272,7 +288,7 @@ func (uacGenerator *UacGenerator) AdminDelete(instrumentName string) error {
 	return nil
 }
 
-func ChunkUAC(uac string) *types.UacChunks {
+func ChunkUAC(uac string) *UacChunks {
 	var chunks []string
 	runes := []rune(uac)
 
@@ -287,7 +303,7 @@ func ChunkUAC(uac string) *types.UacChunks {
 		}
 		chunks = append(chunks, string(runes[i:nn]))
 	}
-	uacChunks := &types.UacChunks{UAC1: chunks[0], UAC2: chunks[1], UAC3: chunks[2]}
+	uacChunks := &UacChunks{UAC1: chunks[0], UAC2: chunks[1], UAC3: chunks[2]}
 	if len(chunks) >= 4 {
 		uacChunks.UAC4 = chunks[3]
 	}
