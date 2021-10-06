@@ -8,20 +8,14 @@ import (
 
 	"cloud.google.com/go/datastore"
 	"github.com/ONSDigital/blaise-uac-service/blaiserestapi"
+	"github.com/ONSDigital/blaise-uac-service/types"
 	"github.com/ONSDigital/blaise-uac-service/uacgenerator"
 	"github.com/ONSDigital/blaise-uac-service/webserver"
 	"github.com/kelseyhightower/envconfig"
 )
 
-type Config struct {
-	Serverpark       string `default:"gusty"`
-	DatastoreProject string `required:"true" split_words:"true"`
-	BlaiseBaseUrl    string `required:"true" split_words:"true"`
-	Port             string `default:"8082"`
-}
-
 func main() {
-	var config Config
+	var config types.Config
 	err := envconfig.Process("", &config)
 	if err != nil {
 		log.Fatal(err.Error())
