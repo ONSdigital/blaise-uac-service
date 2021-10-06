@@ -22,17 +22,6 @@ const (
 )
 
 //Generate mocks by running "go generate ./..."
-//go:generate mockery --name Datastore
-type Datastore interface {
-	Mutate(context.Context, ...*datastore.Mutation) ([]*datastore.Key, error)
-	GetAll(context.Context, *datastore.Query, interface{}) ([]*datastore.Key, error)
-	Count(context.Context, *datastore.Query) (int, error)
-	Get(context.Context, *datastore.Key, interface{}) error
-	DeleteMulti(context.Context, []*datastore.Key) error
-	Close() error
-}
-
-//Generate mocks by running "go generate ./..."
 //go:generate mockery --name UacGeneratorInterface
 type UacGeneratorInterface interface {
 	Generate(string, []string) error
@@ -46,7 +35,7 @@ type UacGeneratorInterface interface {
 
 type UacGenerator struct {
 	UacKind         string
-	DatastoreClient Datastore
+	DatastoreClient types.Datastore
 	Context         context.Context
 	GenerateError   map[string]error
 	Randomizer      *rand.Rand
@@ -72,9 +61,9 @@ func (uacs Uacs) BuildUacChunks() {
 	}
 }
 
-func NewUacGenerator(datastoreClient Datastore) *UacGenerator {
+func NewUacGenerator(datastoreClient types.Datastore) *UacGenerator {
 	return &UacGenerator{
-		UacKind:         "uac",
+		UacKind:         "uac12",
 		Context:         context.Background(),
 		Randomizer:      rand.New(cryptoSource{}),
 		DatastoreClient: datastoreClient,
@@ -102,6 +91,15 @@ func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt 
 		return "", fmt.Errorf("Could not generate a unique UAC in 10 attempts")
 	}
 	uac := uacGenerator.GenerateUac12()
+
+	foo, err := uacGenerator.DatastoreFunk(uac, instrumentName, caseID, attempt)
+	if err != nil {
+		return "", err
+	}
+	return foo, nil
+}
+
+func (uacGenerator *UacGenerator) DatastoreFunk(uac string, instrumentName, caseID string, attempt int) (string, error) {
 	// Cannot workout how the hell to mock/ test this :(
 	newUACMutation := datastore.NewInsert(uacGenerator.UacKey(uac), &UacInfo{
 		InstrumentName: strings.ToLower(instrumentName),
@@ -117,6 +115,7 @@ func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt 
 		return "", err
 	}
 	return uac, nil
+
 }
 
 func (uacGenerator *UacGenerator) UacKey(key string) *datastore.Key {
