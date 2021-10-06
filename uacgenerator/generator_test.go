@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/datastore"
+	"github.com/ONSDigital/blaise-uac-service/types"
 	"github.com/ONSDigital/blaise-uac-service/uacgenerator"
 	"github.com/ONSDigital/blaise-uac-service/uacgenerator/mocks"
 	. "github.com/onsi/ginkgo"
@@ -591,12 +592,12 @@ var _ = Describe("GetInstruments", func() {
 })
 
 var _ = DescribeTable("ChunkUAC",
-	func(uac string, expected uacgenerator.UacChunks) {
+	func(uac string, expected types.UacChunks) {
 		Expect(*uacgenerator.ChunkUAC(uac)).To(Equal(expected))
 	},
-	Entry("123456781234", "123456781234", uacgenerator.UacChunks{UAC1: "1234", UAC2: "5678", UAC3: "1234"}),
-	Entry("111122223333", "111122223333", uacgenerator.UacChunks{UAC1: "1111", UAC2: "2222", UAC3: "3333"}),
-	Entry("11112222333344444", "1111222233334444", uacgenerator.UacChunks{UAC1: "1111", UAC2: "2222", UAC3: "3333", UAC4: "4444"}),
+	Entry("123456781234", "123456781234", types.UacChunks{UAC1: "1234", UAC2: "5678", UAC3: "1234"}),
+	Entry("111122223333", "111122223333", types.UacChunks{UAC1: "1111", UAC2: "2222", UAC3: "3333"}),
+	Entry("11112222333344444", "1111222233334444", types.UacChunks{UAC1: "1111", UAC2: "2222", UAC3: "3333", UAC4: "4444"}),
 )
 
 var _ = Describe("Uacs", func() {
@@ -608,8 +609,8 @@ var _ = Describe("Uacs", func() {
 
 		It("Adds UacChunks to the UacInfo", func() {
 			uacs.BuildUacChunks()
-			Expect(*uacs["111122223333"].UacChunks).To(Equal(uacgenerator.UacChunks{UAC1: "1111", UAC2: "2222", UAC3: "3333"}))
-			Expect(*uacs["123456781234"].UacChunks).To(Equal(uacgenerator.UacChunks{UAC1: "1234", UAC2: "5678", UAC3: "1234"}))
+			Expect(*uacs["111122223333"].UacChunks).To(Equal(types.UacChunks{UAC1: "1111", UAC2: "2222", UAC3: "3333"}))
+			Expect(*uacs["123456781234"].UacChunks).To(Equal(types.UacChunks{UAC1: "1234", UAC2: "5678", UAC3: "1234"}))
 		})
 	})
 })

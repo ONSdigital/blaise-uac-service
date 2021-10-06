@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ONSDigital/blaise-uac-service/types"
+
 	"cloud.google.com/go/datastore"
 	"github.com/zenthangplus/goccm"
 	"google.golang.org/grpc/codes"
@@ -51,19 +53,12 @@ type UacGenerator struct {
 	mu              sync.Mutex
 }
 
-type UacChunks struct {
-	UAC1 string `json:"uac1"`
-	UAC2 string `json:"uac2"`
-	UAC3 string `json:"uac3"`
-	UAC4 string `json:"uac4,omitempty"`
-}
-
 type UacInfo struct {
-	InstrumentName string         `json:"instrument_name" datastore:"instrument_name"`
-	CaseID         string         `json:"case_id" datastore:"case_id"`
-	UacChunks      *UacChunks     `json:"uac_chunks,omitempty" datastore:"-"`
-	UAC            *datastore.Key `json:"-" datastore:"__key__"`
-	FullUAC        string         `json:"-" datastore:"-"`
+	InstrumentName string           `json:"instrument_name" datastore:"instrument_name"`
+	CaseID         string           `json:"case_id" datastore:"case_id"`
+	UacChunks      *types.UacChunks `json:"uac_chunks,omitempty" datastore:"-"`
+	UAC            *datastore.Key   `json:"-" datastore:"__key__"`
+	FullUAC        string           `json:"-" datastore:"-"`
 }
 
 type Uacs map[string]*UacInfo
@@ -268,7 +263,7 @@ func (uacGenerator *UacGenerator) AdminDelete(instrumentName string) error {
 	return nil
 }
 
-func ChunkUAC(uac string) *UacChunks {
+func ChunkUAC(uac string) *types.UacChunks {
 	var chunks []string
 	runes := []rune(uac)
 
@@ -283,7 +278,7 @@ func ChunkUAC(uac string) *UacChunks {
 		}
 		chunks = append(chunks, string(runes[i:nn]))
 	}
-	uacChunks := &UacChunks{UAC1: chunks[0], UAC2: chunks[1], UAC3: chunks[2]}
+	uacChunks := &types.UacChunks{UAC1: chunks[0], UAC2: chunks[1], UAC3: chunks[2]}
 	if len(chunks) >= 4 {
 		uacChunks.UAC4 = chunks[3]
 	}
