@@ -18,7 +18,6 @@ type BlaiseRestApiInterface interface {
 
 type InstrumentModes []string
 
-
 type BlaiseRestApi struct {
 	BaseUrl    string
 	Serverpark string
