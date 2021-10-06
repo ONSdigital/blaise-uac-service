@@ -94,7 +94,7 @@ func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt 
 	}
 
 	if uac == "" {
-		return "", fmt.Errorf("Cannot generate UACs for blank UacKind")
+		return "", fmt.Errorf("Cannot generate UACs for invalid UacKind")
 	}
 	if caseID == "" {
 		return "", fmt.Errorf("Cannot generate UACs for blank caseIDs")

@@ -114,7 +114,7 @@ var _ = Describe("NewUac", func() {
 		})
 	})
 
-	Context("when a UAC is blank", func() {
+	Context("when a UAC kind is blank", func() {
 		var mockDatastore *mocks.Datastore
 
 		BeforeEach(func() {
@@ -131,7 +131,28 @@ var _ = Describe("NewUac", func() {
 		It("returns an error", func() {
 			uac, err := uacGenerator.NewUac(instrumentName, caseID, 0)
 			Expect(uac).To(BeEmpty())
-			Expect(err).To(MatchError("Cannot generate UACs for blank UacKind"))
+			Expect(err).To(MatchError("Cannot generate UACs for invalid UacKind"))
+		})
+	})
+
+	Context("when a UAC kind is invalid", func() {
+		var mockDatastore *mocks.Datastore
+
+		BeforeEach(func() {
+			mockDatastore = &mocks.Datastore{}
+
+			uacGenerator = uacgenerator.NewUacGenerator(mockDatastore, "this is not a valid UWACKY")
+
+			mockDatastore.On("Mutate",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+			).Return(nil, nil)
+		})
+
+		It("returns an error", func() {
+			uac, err := uacGenerator.NewUac(instrumentName, caseID, 0)
+			Expect(uac).To(BeEmpty())
+			Expect(err).To(MatchError("Cannot generate UACs for invalid UacKind"))
 		})
 	})
 
