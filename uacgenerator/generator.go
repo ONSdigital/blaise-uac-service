@@ -61,9 +61,9 @@ func (uacs Uacs) BuildUacChunks() {
 	}
 }
 
-func NewUacGenerator(datastoreClient types.Datastore) *UacGenerator {
+func NewUacGenerator(datastoreClient types.Datastore, uacKind string) *UacGenerator {
 	return &UacGenerator{
-		UacKind:         "uac12",
+		UacKind:         uacKind,
 		Context:         context.Background(),
 		Randomizer:      rand.New(cryptoSource{}),
 		DatastoreClient: datastoreClient,
