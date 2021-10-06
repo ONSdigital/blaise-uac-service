@@ -99,8 +99,18 @@ var _ = Describe("NewUac", func() {
 		})
 	})
 
+	Context("when a UAC is blank", func() {
+		It("returns an error", func() {
+			uacGenerator.UacKind = ""
+			uac, err := uacGenerator.NewUac(instrumentName, caseID, 0)
+			Expect(uac).To(BeEmpty())
+			Expect(err).To(MatchError("Cannot generate UACs for blank UacKind"))
+		})
+	})
+
 	Context("when a caseID is blank", func() {
 		It("returns an error", func() {
+			uacGenerator.UacKind = "uac12"
 			uac, err := uacGenerator.NewUac(instrumentName, "", 0)
 			Expect(uac).To(BeEmpty())
 			Expect(err).To(MatchError("Cannot generate UACs for blank caseIDs"))
