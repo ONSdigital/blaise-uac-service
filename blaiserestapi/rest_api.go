@@ -3,6 +3,7 @@ package blaiserestapi
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ONSDigital/blaise-uac-service/types"
 	"io/ioutil"
 	"net/http"
 )
@@ -16,15 +17,10 @@ type BlaiseRestApiInterface interface {
 	GetInstrumentModes(string) (InstrumentModes, error)
 }
 
-type InstrumentModes []string
 
-type BlaiseRestApi struct {
-	BaseUrl    string
-	Serverpark string
-	Client     *http.Client
-}
 
-func (blaiseRestApi *BlaiseRestApi) GetCaseIds(instrumentName string) ([]string, error) {
+
+func (blaiseRestApi *types.BlaiseRestApi) GetCaseIds(instrumentName string) ([]string, error) {
 	req, err := http.NewRequest("GET", blaiseRestApi.caseIdsUrl(instrumentName), nil)
 	if err != nil {
 		return nil, err
