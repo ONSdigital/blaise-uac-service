@@ -87,6 +87,16 @@ var _ = Describe("NewUac", func() {
 				Expect(err).To(BeNil())
 			}
 		})
+
+		It("Generates a random 16 character alphanumeric UAC", func() {
+			uacGenerator.UacKind = "uac16"
+			for i := 1; i <= 20; i++ {
+				uac, err := uacGenerator.NewUac(instrumentName, caseID, 0)
+
+				Expect(uac).To(MatchRegexp(fmt.Sprintf(`^[%s]{16}$`, uacgenerator.APPROVEDCHARACTERS)))
+				Expect(err).To(BeNil())
+			}
+		})
 	})
 
 	Context("when a caseID is blank", func() {

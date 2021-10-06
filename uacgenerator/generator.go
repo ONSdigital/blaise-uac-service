@@ -75,7 +75,6 @@ func (uacGenerator *UacGenerator) GenerateUac12() string {
 }
 
 func (uacGenerator *UacGenerator) GenerateUac16() string {
-
 	b := make([]byte, 16)
 	for i := range b {
 		b[i] = APPROVEDCHARACTERS[uacGenerator.Randomizer.Intn(len(APPROVEDCHARACTERS))]
@@ -84,19 +83,31 @@ func (uacGenerator *UacGenerator) GenerateUac16() string {
 }
 
 func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt int) (string, error) {
+	var uac string
+	switch uacGenerator.UacKind {
+	case "uac12":
+		uac = uacGenerator.GenerateUac12()
+	case "uac16":
+		uac = uacGenerator.GenerateUac16()
+	default:
+		uac = ""
+	}
+
+	if uac == "" {
+		return "", fmt.Errorf("Cannot generate UACs for blank UacKind")
+	}
 	if caseID == "" {
 		return "", fmt.Errorf("Cannot generate UACs for blank caseIDs")
 	}
 	if attempt >= 10 {
 		return "", fmt.Errorf("Could not generate a unique UAC in 10 attempts")
 	}
-	uac := uacGenerator.GenerateUac12()
 
-	foo, err := uacGenerator.DatastoreFunk(uac, instrumentName, caseID, attempt)
+	uac, err := uacGenerator.DatastoreFunk(uac, instrumentName, caseID, attempt)
 	if err != nil {
 		return "", err
 	}
-	return foo, nil
+	return uac, nil
 }
 
 func (uacGenerator *UacGenerator) DatastoreFunk(uac string, instrumentName, caseID string, attempt int) (string, error) {
@@ -115,7 +126,6 @@ func (uacGenerator *UacGenerator) DatastoreFunk(uac string, instrumentName, case
 		return "", err
 	}
 	return uac, nil
-
 }
 
 func (uacGenerator *UacGenerator) UacKey(key string) *datastore.Key {
