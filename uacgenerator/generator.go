@@ -99,9 +99,16 @@ func (uacGenerator *UacGenerator) GenerateUac16() string {
 }
 
 func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt int) (string, error) {
+	if caseID == "" {
+		return "", fmt.Errorf("Cannot generate UACs for blank caseIDs")
+	}
+	if attempt >= 10 {
+		return "", fmt.Errorf("Could not generate a unique UAC in 10 attempts")
+	}
+
 	var uac string
 	switch uacGenerator.UacKind {
-	case "uac12":
+	case "uac":
 		uac = uacGenerator.GenerateUac12()
 	case "uac16":
 		uac = uacGenerator.GenerateUac16()
@@ -112,21 +119,15 @@ func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt 
 	if uac == "" {
 		return "", fmt.Errorf("Cannot generate UACs for invalid UacKind")
 	}
-	if caseID == "" {
-		return "", fmt.Errorf("Cannot generate UACs for blank caseIDs")
-	}
-	if attempt >= 10 {
-		return "", fmt.Errorf("Could not generate a unique UAC in 10 attempts")
-	}
 
-	uac, err := uacGenerator.DatastoreFunk(uac, instrumentName, caseID, attempt)
+	uac, err := uacGenerator.AddUacToDatastore(uac, instrumentName, caseID, attempt)
 	if err != nil {
 		return "", err
 	}
 	return uac, nil
 }
 
-func (uacGenerator *UacGenerator) DatastoreFunk(uac string, instrumentName, caseID string, attempt int) (string, error) {
+func (uacGenerator *UacGenerator) AddUacToDatastore(uac string, instrumentName, caseID string, attempt int) (string, error) {
 	// Cannot workout how the hell to mock/ test this :(
 	newUACMutation := datastore.NewInsert(uacGenerator.UacKey(uac), &UacInfo{
 		InstrumentName: strings.ToLower(instrumentName),
