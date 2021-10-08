@@ -15,20 +15,9 @@ import (
 )
 
 const (
-	UACKIND       = "uac"
-	MAXCONCURRENT = 500
+	MAXCONCURRENT      = 500
+	APPROVEDCHARACTERS = "bcdfghjklmnpqrstvxz23456789"
 )
-
-//Generate mocks by running "go generate ./..."
-//go:generate mockery --name Datastore
-type Datastore interface {
-	Mutate(context.Context, ...*datastore.Mutation) ([]*datastore.Key, error)
-	GetAll(context.Context, *datastore.Query, interface{}) ([]*datastore.Key, error)
-	Count(context.Context, *datastore.Query) (int, error)
-	Get(context.Context, *datastore.Key, interface{}) error
-	DeleteMulti(context.Context, []*datastore.Key) error
-	Close() error
-}
 
 //Generate mocks by running "go generate ./..."
 //go:generate mockery --name UacGeneratorInterface
@@ -42,12 +31,15 @@ type UacGeneratorInterface interface {
 	AdminDelete(string) error
 }
 
-type UacGenerator struct {
-	DatastoreClient Datastore
-	Context         context.Context
-	GenerateError   map[string]error
-	Randomizer      *rand.Rand
-	mu              sync.Mutex
+//Generate mocks by running "go generate ./..."
+//go:generate mockery --name Datastore
+type Datastore interface {
+	Mutate(context.Context, ...*datastore.Mutation) ([]*datastore.Key, error)
+	GetAll(context.Context, *datastore.Query, interface{}) ([]*datastore.Key, error)
+	Count(context.Context, *datastore.Query) (int, error)
+	Get(context.Context, *datastore.Key, interface{}) error
+	DeleteMulti(context.Context, []*datastore.Key) error
+	Close() error
 }
 
 type UacChunks struct {
@@ -55,6 +47,15 @@ type UacChunks struct {
 	UAC2 string `json:"uac2"`
 	UAC3 string `json:"uac3"`
 	UAC4 string `json:"uac4,omitempty"`
+}
+
+type UacGenerator struct {
+	UacKind         string
+	DatastoreClient Datastore
+	Context         context.Context
+	GenerateError   map[string]error
+	Randomizer      *rand.Rand
+	mu              sync.Mutex
 }
 
 type UacInfo struct {
@@ -76,8 +77,9 @@ func (uacs Uacs) BuildUacChunks() {
 	}
 }
 
-func NewUacGenerator(datastoreClient Datastore) *UacGenerator {
+func NewUacGenerator(datastoreClient Datastore, uacKind string) *UacGenerator {
 	return &UacGenerator{
+		UacKind:         uacKind,
 		Context:         context.Background(),
 		Randomizer:      rand.New(cryptoSource{}),
 		DatastoreClient: datastoreClient,
@@ -88,6 +90,14 @@ func (uacGenerator *UacGenerator) GenerateUac12() string {
 	return fmt.Sprintf("%012d", uacGenerator.Randomizer.Int63n(1e12))
 }
 
+func (uacGenerator *UacGenerator) GenerateUac16() string {
+	b := make([]byte, 16)
+	for i := range b {
+		b[i] = APPROVEDCHARACTERS[uacGenerator.Randomizer.Intn(len(APPROVEDCHARACTERS))]
+	}
+	return string(b)
+}
+
 func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt int) (string, error) {
 	if caseID == "" {
 		return "", fmt.Errorf("Cannot generate UACs for blank caseIDs")
@@ -95,7 +105,25 @@ func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt 
 	if attempt >= 10 {
 		return "", fmt.Errorf("Could not generate a unique UAC in 10 attempts")
 	}
-	uac := uacGenerator.GenerateUac12()
+
+	var uac string
+	switch uacGenerator.UacKind {
+	case "uac":
+		uac = uacGenerator.GenerateUac12()
+	case "uac16":
+		uac = uacGenerator.GenerateUac16()
+	default:
+		return "", fmt.Errorf("Cannot generate UACs for invalid UacKind")
+	}
+
+	uac, err := uacGenerator.AddUacToDatastore(uac, instrumentName, caseID, attempt)
+	if err != nil {
+		return "", err
+	}
+	return uac, nil
+}
+
+func (uacGenerator *UacGenerator) AddUacToDatastore(uac string, instrumentName, caseID string, attempt int) (string, error) {
 	// Cannot workout how the hell to mock/ test this :(
 	newUACMutation := datastore.NewInsert(uacGenerator.UacKey(uac), &UacInfo{
 		InstrumentName: strings.ToLower(instrumentName),
@@ -114,7 +142,7 @@ func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt 
 }
 
 func (uacGenerator *UacGenerator) UacKey(key string) *datastore.Key {
-	return datastore.NameKey(UACKIND, key, nil)
+	return datastore.NameKey(uacGenerator.UacKind, key, nil)
 }
 
 func (uacGenerator *UacGenerator) UacExistsForCase(instrumentName, caseID string) (bool, error) {
@@ -288,18 +316,18 @@ func (uacGenerator *UacGenerator) adminDeleteChunk(uacKeyChunk []*datastore.Key,
 }
 
 func (uacGenerator *UacGenerator) instrumentCaseQuery(instrumentName, caseID string) *datastore.Query {
-	query := datastore.NewQuery(UACKIND)
+	query := datastore.NewQuery(uacGenerator.UacKind)
 	query = query.Filter("instrument_name =", strings.ToLower(instrumentName))
 	return query.Filter("case_id = ", strings.ToLower(caseID))
 }
 
 func (uacGenerator *UacGenerator) instrumentQuery(instrumentName string) *datastore.Query {
-	query := datastore.NewQuery(UACKIND)
+	query := datastore.NewQuery(uacGenerator.UacKind)
 	return query.Filter("instrument_name =", strings.ToLower(instrumentName))
 }
 
 func (uacGenerator *UacGenerator) instrumentNamesQuery() *datastore.Query {
-	query := datastore.NewQuery(UACKIND)
+	query := datastore.NewQuery(uacGenerator.UacKind)
 	query = query.Project("instrument_name")
 	return query.DistinctOn("instrument_name")
 }
