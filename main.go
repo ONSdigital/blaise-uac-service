@@ -18,7 +18,7 @@ type Config struct {
 	DatastoreProject string `required:"true" split_words:"true"`
 	BlaiseBaseUrl    string `required:"true" split_words:"true"`
 	Port             string `default:"8082"`
-	UacKind          string `default:"uac"`
+	UacKind          string `default:"uac" split_words:"true"`
 }
 
 func main() {

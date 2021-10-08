@@ -113,10 +113,6 @@ func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt 
 	case "uac16":
 		uac = uacGenerator.GenerateUac16()
 	default:
-		uac = ""
-	}
-
-	if uac == "" {
 		return "", fmt.Errorf("Cannot generate UACs for invalid UacKind")
 	}
 
