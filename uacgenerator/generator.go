@@ -87,7 +87,12 @@ func NewUacGenerator(datastoreClient Datastore, uacKind string) *UacGenerator {
 }
 
 func (uacGenerator *UacGenerator) GenerateUac12() string {
-	return fmt.Sprintf("%012d", uacGenerator.Randomizer.Int63n(1e12))
+	var uac string
+	for i := 0; i < 3; i++ {
+		uacSegmant := uacGenerator.Randomizer.Int63n(9999 - 1000)
+		uac = fmt.Sprintf("%s%d", uac, uacSegmant+1000)
+	}
+	return uac
 }
 
 func (uacGenerator *UacGenerator) GenerateUac16() string {
