@@ -3,6 +3,7 @@ package uacgenerator_test
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"cloud.google.com/go/datastore"
 	"github.com/ONSDigital/blaise-uac-service/uacgenerator"
@@ -30,6 +31,14 @@ var _ = Describe("GenerateUac12", func() {
 			uac := uacGenerator.GenerateUac12()
 
 			Expect(uac).To(MatchRegexp(`^\d{12}$`))
+
+			var startIndex = 0
+			for i := 0; i < 3; i++ {
+				uacSegmant, _ := strconv.Atoi(uac[startIndex : startIndex+4])
+				Expect(uacSegmant).To(BeNumerically(">=", 1000))
+				Expect(uacSegmant).To(BeNumerically("<=", 9999))
+				startIndex = startIndex + 4
+			}
 		}
 	})
 })
