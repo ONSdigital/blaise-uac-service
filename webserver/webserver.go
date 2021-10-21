@@ -7,12 +7,14 @@ import (
 )
 
 type Server struct {
-	BlaiseRestApi blaiserestapi.BlaiseRestApiInterface
-	UacGenerator  uacgenerator.UacGeneratorInterface
+	BlaiseRestApi    blaiserestapi.BlaiseRestApiInterface
+	UacGenerator     uacgenerator.UacGeneratorInterface
+	TracerMiddleWare gin.HandlerFunc
 }
 
 func (server *Server) SetupRouter() *gin.Engine {
 	httpRouter := gin.Default()
+	httpRouter.Use(server.TracerMiddleWare)
 	uacController := &UacController{
 		BlaiseRestApi: server.BlaiseRestApi,
 		UacGenerator:  server.UacGenerator,
