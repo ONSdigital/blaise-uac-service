@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -17,6 +19,7 @@ import (
 const (
 	MAXCONCURRENT      = 500
 	APPROVEDCHARACTERS = "bcdfghjklmnpqrstvxz23456789"
+	UNKNOWNINSTRUMENT  = "unknown"
 )
 
 //Generate mocks by running "go generate ./..."
@@ -28,6 +31,7 @@ type UacGeneratorInterface interface {
 	GetUacCount(string) (int, error)
 	GetUacInfo(string) (*UacInfo, error)
 	GetInstruments() ([]string, error)
+	ImportUACs([]string) (int, error)
 	AdminDelete(string) error
 }
 
@@ -56,6 +60,7 @@ type UacGenerator struct {
 	GenerateError   map[string]error
 	Randomizer      *rand.Rand
 	mu              sync.Mutex
+	importMu        sync.Mutex
 }
 
 type UacInfo struct {
@@ -121,14 +126,17 @@ func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt 
 		return "", fmt.Errorf("Cannot generate UACs for invalid UacKind")
 	}
 
-	uac, err := uacGenerator.AddUacToDatastore(uac, instrumentName, caseID, attempt)
+	err := uacGenerator.AddUacToDatastore(uac, instrumentName, caseID)
 	if err != nil {
+		if alreadyExistsError(err) {
+			return uacGenerator.NewUac(instrumentName, caseID, attempt+1)
+		}
 		return "", err
 	}
 	return uac, nil
 }
 
-func (uacGenerator *UacGenerator) AddUacToDatastore(uac string, instrumentName, caseID string, attempt int) (string, error) {
+func (uacGenerator *UacGenerator) AddUacToDatastore(uac string, instrumentName, caseID string) error {
 	// Cannot workout how the hell to mock/ test this :(
 	newUACMutation := datastore.NewInsert(uacGenerator.UacKey(uac), &UacInfo{
 		InstrumentName: strings.ToLower(instrumentName),
@@ -136,14 +144,9 @@ func (uacGenerator *UacGenerator) AddUacToDatastore(uac string, instrumentName, 
 	})
 	_, err := uacGenerator.DatastoreClient.Mutate(uacGenerator.Context, newUACMutation)
 	if err != nil {
-		if statusErr, ok := status.FromError(err); ok {
-			if statusErr.Code() == codes.AlreadyExists {
-				return uacGenerator.NewUac(instrumentName, caseID, attempt+1)
-			}
-		}
-		return "", err
+		return err
 	}
-	return uac, nil
+	return nil
 }
 
 func (uacGenerator *UacGenerator) UacKey(key string) *datastore.Key {
@@ -269,6 +272,60 @@ func (uacGenerator *UacGenerator) GetInstruments() ([]string, error) {
 	return instrumentNames, nil
 }
 
+func (uacGenerator *UacGenerator) ImportUACs(uacs []string) (int, error) {
+	if err := uacGenerator.ValidateUACs(uacs); err != nil {
+		return 0, err
+	}
+	uacsToImport, err := uacGenerator.getUACsToImport(uacs)
+	if err != nil {
+		return 0, err
+	}
+	return uacGenerator.importUACs(uacsToImport)
+}
+
+func (uacGenerator *UacGenerator) ValidateUAC12(uac string) bool {
+	if len(uac) != 12 {
+		return false
+	}
+	chunkedUAC := ChunkUAC(uac)
+	uacParts := []string{chunkedUAC.UAC1, chunkedUAC.UAC2, chunkedUAC.UAC3}
+	for _, uacPart := range uacParts {
+		uacInt, err := strconv.Atoi(uacPart)
+		if err != nil {
+			return false
+		}
+		if uacInt < 1000 || uacInt > 9999 {
+			return false
+		}
+	}
+	return true
+}
+
+func (uacGenerator *UacGenerator) ValidateUAC16(uac string) bool {
+	uac16Regex := regexp.MustCompile(fmt.Sprintf(`^[%s]{16}$`, APPROVEDCHARACTERS))
+	return uac16Regex.MatchString(uac)
+}
+
+func (uacGenerator *UacGenerator) ValidateUAC(uac string) bool {
+	if uacGenerator.UacKind == "uac16" {
+		return uacGenerator.ValidateUAC16(uac)
+	}
+	return uacGenerator.ValidateUAC12(uac)
+}
+
+func (uacGenerator *UacGenerator) ValidateUACs(uacs []string) error {
+	var importError ImportError
+	for _, uac := range uacs {
+		if !uacGenerator.ValidateUAC(uac) {
+			importError.InvalidUACs = append(importError.InvalidUACs, uac)
+		}
+	}
+	if importError.HasErrors() {
+		return &importError
+	}
+	return nil
+}
+
 func (uacGenerator *UacGenerator) AdminDelete(instrumentName string) error {
 	var instrumentUACs []*UacInfo
 	instrumentUACKeys, err := uacGenerator.DatastoreClient.GetAll(uacGenerator.Context, uacGenerator.instrumentQuery(instrumentName), &instrumentUACs)
@@ -288,6 +345,91 @@ func (uacGenerator *UacGenerator) AdminDelete(instrumentName string) error {
 	}
 	concurrent.WaitAllDone()
 	return nil
+}
+
+func (uacGenerator *UacGenerator) getUACsToImport(uacs []string) ([]string, error) {
+	var (
+		uacsToImport []string
+		importError  ImportError
+		errors       []error
+	)
+
+	if len(uacs) == 0 {
+		return nil, nil
+	}
+
+	concurrent := goccm.New(MAXCONCURRENT)
+	for _, uac := range uacs {
+		concurrent.Wait()
+		go func(uac string) {
+			defer concurrent.Done()
+			uacInfo, err := uacGenerator.GetUacInfo(uac)
+			if err == datastore.ErrNoSuchEntity {
+				uacGenerator.importMu.Lock()
+				uacsToImport = append(uacsToImport, uac)
+				uacGenerator.importMu.Unlock()
+				return
+			}
+			if err != nil {
+				uacGenerator.importMu.Lock()
+				errors = append(errors, err)
+				uacGenerator.importMu.Unlock()
+				return
+			}
+			if uacInfo.InstrumentName == UNKNOWNINSTRUMENT {
+				return
+			}
+			uacGenerator.importMu.Lock()
+			importError.InstrumentUACs = append(importError.InstrumentUACs, uac)
+			uacGenerator.importMu.Unlock()
+		}(uac)
+	}
+	concurrent.WaitAllDone()
+
+	if len(errors) > 0 {
+		return nil, errors[0]
+	}
+
+	if importError.HasErrors() {
+		return nil, &importError
+	}
+	return uacsToImport, nil
+}
+
+func (uacGenerator *UacGenerator) importUACs(uacs []string) (int, error) {
+	var (
+		updateCount = 0
+		errors      []error
+	)
+
+	if len(uacs) == 0 {
+		return 0, nil
+	}
+
+	concurrent := goccm.New(MAXCONCURRENT)
+	for _, uac := range uacs {
+		concurrent.Wait()
+		go func(uac string) {
+			defer concurrent.Done()
+			err := uacGenerator.AddUacToDatastore(uac, UNKNOWNINSTRUMENT, UNKNOWNINSTRUMENT)
+			if err != nil {
+				uacGenerator.importMu.Lock()
+				errors = append(errors, err)
+				uacGenerator.importMu.Unlock()
+				return
+			}
+			uacGenerator.importMu.Lock()
+			updateCount++
+			uacGenerator.importMu.Unlock()
+		}(uac)
+	}
+	concurrent.WaitAllDone()
+
+	if len(errors) > 0 {
+		return 0, errors[0]
+	}
+
+	return updateCount, nil
 }
 
 func ChunkUAC(uac string) *UacChunks {
@@ -353,4 +495,11 @@ func chunkDatastoreKeys(keys []*datastore.Key) [][]*datastore.Key {
 	}
 
 	return chunks
+}
+
+func alreadyExistsError(err error) bool {
+	if statusErr, ok := status.FromError(err); ok {
+		return statusErr.Code() == codes.AlreadyExists
+	}
+	return false
 }

@@ -690,3 +690,262 @@ var _ = Describe("Uacs", func() {
 		})
 	})
 })
+
+var _ = Describe("ImportUacs", func() {
+	var (
+		uacGenerator  *uacgenerator.UacGenerator
+		mockDatastore *mocks.Datastore
+		uacs          []string
+	)
+
+	BeforeEach(func() {
+		mockDatastore = &mocks.Datastore{}
+		uacGenerator = uacgenerator.NewUacGenerator(mockDatastore, "uac")
+
+		mockDatastore.On("Mutate",
+			uacGenerator.Context,
+			mock.AnythingOfTypeArgument("*datastore.Mutation"),
+		).Return(nil, nil)
+	})
+
+	AfterEach(func() {
+		uacs = []string{}
+	})
+
+	Context("when there are no uacs", func() {
+		BeforeEach(func() {
+			uacs = []string{}
+		})
+
+		It("imports nothing and returns 0 imported with no error", func() {
+			updateCount, err := uacGenerator.ImportUACs(uacs)
+			Expect(updateCount).To(Equal(0))
+			Expect(err).To(BeNil())
+			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
+		})
+	})
+
+	Context("and none of the UACs already exist", func() {
+		Context("and all the UACs are valid", func() {
+			BeforeEach(func() {
+				uacs = []string{"123456789123", "123456789145", "123556789987"}
+
+				mockDatastore.On("Get",
+					uacGenerator.Context,
+					mock.AnythingOfTypeArgument("*datastore.Key"),
+					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+				).Return(datastore.ErrNoSuchEntity)
+			})
+
+			It("imports all of the UACs", func() {
+				updateCount, err := uacGenerator.ImportUACs(uacs)
+				Expect(updateCount).To(Equal(3))
+				Expect(err).To(BeNil())
+				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 3)
+			})
+		})
+
+		Context("and one of the UACs has an invalid format", func() {
+			BeforeEach(func() {
+				uacs = []string{"123456789123", "123456789145", "123556789987", "a2sad", "2131asda91298"}
+			})
+
+			It("errors and doesn't import anything", func() {
+				updateCount, err := uacGenerator.ImportUACs(uacs)
+				Expect(updateCount).To(Equal(0))
+				Expect(err).To(MatchError(`Cannot import UACs because some were invalid: ["a2sad", "2131asda91298"]`))
+				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
+			})
+		})
+	})
+
+	Context("and all of the UACs already exist as 'unknown'", func() {
+		BeforeEach(func() {
+			uacs = []string{"123456789123", "123456789145", "123556789987"}
+
+			mockDatastore.On("Get",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Key"),
+				mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+			).Return(func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
+				uacInfo := dst.(*uacgenerator.UacInfo)
+				key := uacGenerator.UacKey("any")
+				*uacInfo = uacgenerator.UacInfo{
+					InstrumentName: "unknown",
+					CaseID:         "unknown",
+					UAC:            key,
+				}
+				return nil
+			})
+		})
+
+		It("imports nothing and returns 0 imported with no error", func() {
+			updateCount, err := uacGenerator.ImportUACs(uacs)
+			Expect(updateCount).To(Equal(0))
+			Expect(err).To(BeNil())
+			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
+		})
+	})
+
+	Context("and some of the UACs already exist", func() {
+		BeforeEach(func() {
+			uacs = []string{"123456789123", "123456789145", "123556789987"}
+		})
+
+		Context("and they have an InstrumentName of 'unknown'", func() {
+			BeforeEach(func() {
+				mockDatastore.On("Get",
+					uacGenerator.Context,
+					mock.AnythingOfTypeArgument("*datastore.Key"),
+					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+				).Times(2).Return(datastore.ErrNoSuchEntity)
+				mockDatastore.On("Get",
+					uacGenerator.Context,
+					mock.AnythingOfTypeArgument("*datastore.Key"),
+					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+				).Return(func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
+					uacInfo := dst.(*uacgenerator.UacInfo)
+					key := uacGenerator.UacKey("123556789987")
+					*uacInfo = uacgenerator.UacInfo{
+						InstrumentName: "unknown",
+						CaseID:         "unknown",
+						UAC:            key,
+					}
+					return nil
+				})
+			})
+
+			It("imports all of the UACs, skipping those that already exist", func() {
+				updateCount, err := uacGenerator.ImportUACs(uacs)
+				Expect(updateCount).To(Equal(2))
+				Expect(err).To(BeNil())
+				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 2)
+			})
+		})
+
+		Context("and they have InstrumentNames that are not 'unknown'", func() {
+			BeforeEach(func() {
+				mockDatastore.On("Get",
+					uacGenerator.Context,
+					uacGenerator.UacKey("123556789987"),
+					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+				).Return(func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
+					uacInfo := dst.(*uacgenerator.UacInfo)
+					key := uacGenerator.UacKey("123556789987")
+					*uacInfo = uacgenerator.UacInfo{
+						InstrumentName: "dst2108a",
+						CaseID:         "1234",
+						UAC:            key,
+					}
+					return nil
+				})
+				mockDatastore.On("Get",
+					uacGenerator.Context,
+					mock.AnythingOfTypeArgument("*datastore.Key"),
+					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+				).Return(datastore.ErrNoSuchEntity)
+			})
+
+			It("errors and doesn't import anything", func() {
+				updateCount, err := uacGenerator.ImportUACs(uacs)
+				Expect(updateCount).To(Equal(0))
+				Expect(err).To(MatchError(`Cannot import UACs because some were already in use by questionnaires: ["123556789987"]`))
+				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
+			})
+		})
+	})
+})
+
+var _ = Describe("ValidateUAC12", func() {
+	var uacGenerator = &uacgenerator.UacGenerator{}
+	DescribeTable("Validations",
+		func(uac string, expected bool) {
+			Expect(uacGenerator.ValidateUAC12(uac)).To(Equal(expected))
+		},
+		Entry("short", "21314", false),
+		Entry("long", "21314632512345123", false),
+		Entry("letters", "abcdabcdabcd", false),
+		Entry("badnumbers", "1234012341234", false),
+		Entry("goodnumbers", "123412341234", true),
+	)
+})
+
+var _ = Describe("ValidateUAC16", func() {
+	var uacGenerator = &uacgenerator.UacGenerator{}
+	DescribeTable("Validations",
+		func(uac string, expected bool) {
+			Expect(uacGenerator.ValidateUAC16(uac)).To(Equal(expected))
+		},
+		Entry("short", "21314", false),
+		Entry("long", "21314632512345123", false),
+		Entry("vowles", "abcdabcdabcdabcd", false),
+		Entry("ones", "1111222233334444", false),
+		Entry("zeroes", "0000222233334444", false),
+		Entry("all letters", "mnbvmnbvmnbvmnbv", true),
+		Entry("all numbers", "2345678923456789", true),
+		Entry("mix", "23kl56mn78fd42bn", true),
+	)
+})
+
+var _ = Describe("ValidateUAC", func() {
+	var (
+		uacGenerator = &uacgenerator.UacGenerator{}
+		uac12        = "123412341234"
+		uac16        = "23kl56mn78fd42bn"
+	)
+	Context("when configured for 12 digit UACs", func() {
+		BeforeEach(func() {
+			uacGenerator.UacKind = "uac"
+		})
+
+		Context("when a 16 character UAC is provided", func() {
+			It("returns false", func() {
+				Expect(uacGenerator.ValidateUAC(uac16)).To(BeFalse())
+			})
+		})
+
+		Context("when a 12 digit UAC is provided", func() {
+			It("returns true", func() {
+				Expect(uacGenerator.ValidateUAC(uac12)).To(BeTrue())
+			})
+		})
+	})
+
+	Context("when configured for 16 character UACs", func() {
+		BeforeEach(func() {
+			uacGenerator.UacKind = "uac16"
+		})
+
+		Context("when a 16 character UAC is provided", func() {
+			It("returns true", func() {
+				Expect(uacGenerator.ValidateUAC(uac16)).To(BeTrue())
+			})
+		})
+
+		Context("when a 12 digit UAC is provided", func() {
+			It("returns false", func() {
+				Expect(uacGenerator.ValidateUAC(uac12)).To(BeFalse())
+			})
+		})
+	})
+})
+
+var _ = Describe("ValiadateUACs", func() {
+	var uacGenerator = &uacgenerator.UacGenerator{}
+	Context("when some uacs are invalid", func() {
+		var uacs = []string{"2313", "41512", "123412341234"}
+
+		It("returms an ImportError with invalid UACs", func() {
+			err := uacGenerator.ValidateUACs(uacs)
+			Expect(err.(*uacgenerator.ImportError).InvalidUACs).To(Equal([]string{"2313", "41512"}))
+		})
+	})
+
+	Context("when all uacs are valid", func() {
+		var uacs = []string{"123412341234", "456745674567"}
+
+		It("returns nil", func() {
+			Expect(uacGenerator.ValidateUACs(uacs)).To(BeNil())
+		})
+	})
+})

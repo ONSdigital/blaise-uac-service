@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/mock"
 
 	mockblaiserestapi "github.com/ONSDigital/blaise-uac-service/blaiserestapi/mocks"
 	mockuacgenerator "github.com/ONSDigital/blaise-uac-service/uacgenerator/mocks"
@@ -347,6 +348,54 @@ var _ = Describe("UAC Controller", func() {
 			It("Returns an empty body and a not found status", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusNotFound))
 				Expect(httpRecorder.Body.String()).To(Equal("null"))
+			})
+		})
+	})
+
+	Describe("POST /import", func() {
+		var (
+			httpRecorder *httptest.ResponseRecorder
+		)
+
+		JustBeforeEach(func() {
+			requestBody := `["123456789123","123456789145","123556789987"]`
+			httpRecorder = httptest.NewRecorder()
+			req, _ := http.NewRequest("POST", "/uacs/import", bytes.NewBufferString(requestBody))
+			httpRouter.ServeHTTP(httpRecorder, req)
+		})
+
+		Context("and importing the UACs is successful", func() {
+			BeforeEach(func() {
+				mockUacGenerator.On("ImportUACs", mock.AnythingOfType("[]string")).Return(3, nil)
+			})
+
+			It("imports all of the UACs", func() {
+				Expect(httpRecorder.Code).To(Equal(http.StatusOK))
+				Expect(httpRecorder.Body.String()).To(Equal(`{"uacs_imported":3}`))
+			})
+		})
+
+		Context("and importing the UACs errors", func() {
+			Context("and the error is an import error", func() {
+				BeforeEach(func() {
+					mockUacGenerator.On("ImportUACs", mock.AnythingOfType("[]string")).
+						Return(0, &uacgenerator.ImportError{InvalidUACs: []string{"foobar"}})
+				})
+
+				It("errors and doesn't import anything", func() {
+					Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
+					Expect(httpRecorder.Body.String()).To(Equal(`{"error":"Cannot import UACs because some were invalid: [\"foobar\"]"}`))
+				})
+			})
+
+			Context("and the error is any other error", func() {
+				BeforeEach(func() {
+					mockUacGenerator.On("ImportUACs", mock.AnythingOfType("[]string")).Return(0, fmt.Errorf("invalid uac"))
+				})
+
+				It("errors and doesn't import anything", func() {
+					Expect(httpRecorder.Code).To(Equal(http.StatusInternalServerError))
+				})
 			})
 		})
 	})
