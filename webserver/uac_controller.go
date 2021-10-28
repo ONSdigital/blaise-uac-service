@@ -42,6 +42,7 @@ func (uacController *UacController) AddRoutes(httpRouter *gin.Engine) {
 		uacsGroup.POST("/uac", uacController.GetUacInfoEndpoint)
 		uacsGroup.DELETE("/admin/instrument/:instrumentName", uacController.AdminDeleteEndpoint)
 		uacsGroup.GET("/instruments", uacController.ListInstrumentsEndpoint)
+		uacsGroup.POST("/import", uacController.ImportEndpoint)
 	}
 }
 
@@ -180,6 +181,31 @@ func (uacController *UacController) AdminDeleteEndpoint(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusNoContent, nil)
+}
+
+func (uacController *UacController) ImportEndpoint(context *gin.Context) {
+	body, err := ioutil.ReadAll(context.Request.Body)
+	if err != nil {
+		context.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	defer context.Request.Body.Close()
+	var uacs []string
+	err = json.Unmarshal(body, &uacs)
+	if err != nil {
+		context.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	importCount, err := uacController.UacGenerator.ImportUACs(uacs)
+	if err != nil {
+		if _, ok := err.(*uacgenerator.ImportError); ok {
+			context.AbortWithStatusJSON(http.StatusBadRequest, ResponseError{Error: err.Error()})
+			return
+		}
+		context.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	context.JSON(http.StatusOK, gin.H{"uacs_imported": importCount})
 }
 
 func (uacController *UacController) blaiseRestApiError(context *gin.Context, err error) {
