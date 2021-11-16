@@ -327,8 +327,7 @@ func (uacGenerator *UacGenerator) ValidateUACs(uacs []string) error {
 }
 
 func (uacGenerator *UacGenerator) AdminDelete(instrumentName string) error {
-	var instrumentUACs []*UacInfo
-	instrumentUACKeys, err := uacGenerator.DatastoreClient.GetAll(uacGenerator.Context, uacGenerator.instrumentQuery(instrumentName), &instrumentUACs)
+	instrumentUACKeys, err := uacGenerator.DatastoreClient.GetAll(uacGenerator.Context, uacGenerator.instrumentQuery(instrumentName).KeysOnly(), nil)
 	if err != nil {
 		return err
 	}
