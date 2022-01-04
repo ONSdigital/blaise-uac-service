@@ -181,7 +181,7 @@ var _ = Describe("UAC Controller", func() {
 
 		It("Gets all UACs for an installed instrument", func() {
 			Expect(httpRecorder.Code).To(Equal(http.StatusOK))
-			Expect(httpRecorder.Body.String()).To(Equal(`{"12452":{"instrument_name":"test123","case_id":"12452","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"}},"65858":{"instrument_name":"test123","case_id":"65858","uac_chunks":{"uac1":"7894","uac2":"5612","uac3":"309"}}}`))
+			Expect(httpRecorder.Body.String()).To(Equal(`{"12452":{"instrument_name":"test123","case_id":"12452","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"},"full_uac":"125634896985"},"65858":{"instrument_name":"test123","case_id":"65858","uac_chunks":{"uac1":"7894","uac2":"5612","uac3":"309"},"full_uac":"78945612309"}}`))
 		})
 	})
 
