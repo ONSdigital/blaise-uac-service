@@ -68,7 +68,7 @@ type UacInfo struct {
 	CaseID         string         `json:"case_id" datastore:"case_id"`
 	UacChunks      *UacChunks     `json:"uac_chunks,omitempty" datastore:"-"`
 	UAC            *datastore.Key `json:"-" datastore:"__key__"`
-	FullUAC        string         `json:"-" datastore:"-"`
+	FullUAC        string         `json:"full_uac,omitempty" datastore:"-"`
 }
 
 type Uacs map[string]*UacInfo
