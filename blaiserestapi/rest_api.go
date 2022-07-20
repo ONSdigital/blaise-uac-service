@@ -72,7 +72,7 @@ func (blaiseRestApi *BlaiseRestApi) GetInstrumentModes(instrumentName string) (I
 
 func (blaiseRestApi *BlaiseRestApi) caseIdsUrl(instrumentName string) string {
 	return fmt.Sprintf(
-		"%s/api/v1/serverparks/%s/instruments/%s/cases/ids",
+		"%s/api/v2/serverparks/%s/questionnaires/%s/cases/ids",
 		blaiseRestApi.BaseUrl,
 		blaiseRestApi.Serverpark,
 		instrumentName,
@@ -81,7 +81,7 @@ func (blaiseRestApi *BlaiseRestApi) caseIdsUrl(instrumentName string) string {
 
 func (blaiseRestApi *BlaiseRestApi) instrumentModeUrl(instrumentName string) string {
 	return fmt.Sprintf(
-		"%s/api/v1/serverparks/%s/instruments/%s/modes",
+		"%s/api/v2/serverparks/%s/questionnaires/%s/modes",
 		blaiseRestApi.BaseUrl,
 		blaiseRestApi.Serverpark,
 		instrumentName,

@@ -41,7 +41,7 @@ var _ = Describe("Blaise rest api endpoints", func() {
 	Describe("Get Case Ids", func() {
 		Context("when an instrument does not exist", func() {
 			JustBeforeEach(func() {
-				httpmock.RegisterResponder("GET", fmt.Sprintf("%s/api/v1/serverparks/%s/instruments/%s/cases/ids", restApiUrl, serverpark, instrumentName),
+				httpmock.RegisterResponder("GET", fmt.Sprintf("%s/api/v2/serverparks/%s/questionnaires/%s/cases/ids", restApiUrl, serverpark, instrumentName),
 					httpmock.NewBytesResponder(404, []byte{}))
 			})
 
@@ -54,7 +54,7 @@ var _ = Describe("Blaise rest api endpoints", func() {
 
 		Context("when there are case IDs", func() {
 			JustBeforeEach(func() {
-				httpmock.RegisterResponder("GET", fmt.Sprintf("%s/api/v1/serverparks/%s/instruments/%s/cases/ids", restApiUrl, serverpark, instrumentName),
+				httpmock.RegisterResponder("GET", fmt.Sprintf("%s/api/v2/serverparks/%s/questionnaires/%s/cases/ids", restApiUrl, serverpark, instrumentName),
 					httpmock.NewJsonResponderOrPanic(200, caseIDs))
 			})
 
@@ -67,7 +67,7 @@ var _ = Describe("Blaise rest api endpoints", func() {
 
 		Context("when there are no case IDs", func() {
 			JustBeforeEach(func() {
-				httpmock.RegisterResponder("GET", fmt.Sprintf("%s/api/v1/serverparks/%s/instruments/%s/cases/ids", restApiUrl, serverpark, instrumentName),
+				httpmock.RegisterResponder("GET", fmt.Sprintf("%s/api/v2/serverparks/%s/questionnaires/%s/cases/ids", restApiUrl, serverpark, instrumentName),
 					httpmock.NewJsonResponderOrPanic(200, []string{}))
 			})
 
@@ -88,7 +88,7 @@ var _ = Describe("Blaise rest api endpoints", func() {
 
 		Context("when an instrument does not exist", func() {
 			JustBeforeEach(func() {
-				httpmock.DefaultTransport.RegisterResponder("GET", fmt.Sprintf("%s/api/v1/serverparks/%s/instruments/%s/modes", restApiUrl, serverpark, instrumentName),
+				httpmock.DefaultTransport.RegisterResponder("GET", fmt.Sprintf("%s/api/v2/serverparks/%s/questionnaires/%s/modes", restApiUrl, serverpark, instrumentName),
 					httpmock.NewBytesResponder(404, []byte{}))
 			})
 
@@ -101,7 +101,7 @@ var _ = Describe("Blaise rest api endpoints", func() {
 
 		Context("when an instrument has modes", func() {
 			JustBeforeEach(func() {
-				httpmock.DefaultTransport.RegisterResponder("GET", fmt.Sprintf("%s/api/v1/serverparks/%s/instruments/%s/modes", restApiUrl, serverpark, instrumentName),
+				httpmock.DefaultTransport.RegisterResponder("GET", fmt.Sprintf("%s/api/v2/serverparks/%s/questionnaires/%s/modes", restApiUrl, serverpark, instrumentName),
 					httpmock.NewJsonResponderOrPanic(200, instrumentModes))
 			})
 
