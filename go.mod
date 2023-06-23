@@ -1,6 +1,6 @@
 module github.com/ONSDigital/blaise-uac-service
 
-go 1.15
+go 1.19
 
 require (
 	cloud.google.com/go/datastore v1.1.0
