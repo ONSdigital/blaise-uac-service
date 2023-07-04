@@ -203,7 +203,12 @@ func (uacGenerator *UacGenerator) Generate(instrumentName string, caseIDs []stri
 		concurrent.Wait()
 		go func(caseID string) {
 			defer concurrent.Done()
-			uacGenerator.GenerateUniqueUac(instrumentName, caseID)
+			err := uacGenerator.GenerateUniqueUac(instrumentName, caseID)
+            if err != nil {
+                uacGenerator.mu.Lock()
+                uacGenerator.GenerateError[instrumentName] = err
+                uacGenerator.mu.Unlock()
+            }
 		}(caseID)
 	}
 	concurrent.WaitAllDone()
