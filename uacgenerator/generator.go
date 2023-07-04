@@ -468,13 +468,13 @@ func (uacGenerator *UacGenerator) adminDeleteChunk(uacKeyChunk []*datastore.Key,
 
 func (uacGenerator *UacGenerator) instrumentCaseQuery(instrumentName, caseID string) *datastore.Query {
 	query := datastore.NewQuery(uacGenerator.UacKind)
-	query = query.Filter("instrument_name =", strings.ToLower(instrumentName))
-	return query.Filter("case_id = ", strings.ToLower(caseID))
+    query = query.FilterField("instrument_name", "=", strings.ToLower(instrumentName))
+	return query.FilterField(strings.ToLower("case_id"), "=", strings.ToLower(caseID))
 }
 
 func (uacGenerator *UacGenerator) instrumentQuery(instrumentName string) *datastore.Query {
 	query := datastore.NewQuery(uacGenerator.UacKind)
-	return query.Filter("instrument_name =", strings.ToLower(instrumentName))
+	return query.FilterField("instrument_name", "=", strings.ToLower(instrumentName))
 }
 
 func (uacGenerator *UacGenerator) instrumentNamesQuery() *datastore.Query {
