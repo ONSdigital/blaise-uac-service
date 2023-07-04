@@ -3,7 +3,7 @@ package blaiserestapi
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -38,7 +38,7 @@ func (blaiseRestApi *BlaiseRestApi) GetCaseIds(instrumentName string) ([]string,
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, fmt.Errorf("Instrument not found")
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (blaiseRestApi *BlaiseRestApi) GetInstrumentModes(instrumentName string) (I
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, fmt.Errorf("Instrument not found")
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

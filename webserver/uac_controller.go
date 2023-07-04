@@ -3,7 +3,7 @@ package webserver
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 
@@ -77,7 +77,7 @@ func (uacController *UacController) UACInstrumentGenerateEndpoint(context *gin.C
 }
 
 func (uacController *UacController) UACGenerateEndpoint(context *gin.Context) {
-	body, err := ioutil.ReadAll(context.Request.Body)
+	body, err := io.ReadAll(context.Request.Body)
 	if err != nil {
 		context.AbortWithError(http.StatusInternalServerError, err)
 		return
@@ -184,7 +184,7 @@ func (uacController *UacController) AdminDeleteEndpoint(context *gin.Context) {
 }
 
 func (uacController *UacController) ImportEndpoint(context *gin.Context) {
-	body, err := ioutil.ReadAll(context.Request.Body)
+	body, err := io.ReadAll(context.Request.Body)
 	if err != nil {
 		context.AbortWithError(http.StatusInternalServerError, err)
 		return
@@ -217,7 +217,7 @@ func (uacController *UacController) blaiseRestApiError(context *gin.Context, err
 }
 
 func (uacController *UacController) getUacRequest(context *gin.Context) (UACRequest, error) {
-	body, err := ioutil.ReadAll(context.Request.Body)
+	body, err := io.ReadAll(context.Request.Body)
 	if err != nil {
 		return UACRequest{}, err
 	}
