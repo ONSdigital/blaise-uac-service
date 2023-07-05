@@ -203,7 +203,12 @@ func (uacGenerator *UacGenerator) Generate(instrumentName string, caseIDs []stri
 		concurrent.Wait()
 		go func(caseID string) {
 			defer concurrent.Done()
-			uacGenerator.GenerateUniqueUac(instrumentName, caseID)
+			err := uacGenerator.GenerateUniqueUac(instrumentName, caseID)
+            if err != nil {
+                uacGenerator.mu.Lock()
+                uacGenerator.GenerateError[instrumentName] = err
+                uacGenerator.mu.Unlock()
+            }
 		}(caseID)
 	}
 	concurrent.WaitAllDone()
@@ -463,13 +468,13 @@ func (uacGenerator *UacGenerator) adminDeleteChunk(uacKeyChunk []*datastore.Key,
 
 func (uacGenerator *UacGenerator) instrumentCaseQuery(instrumentName, caseID string) *datastore.Query {
 	query := datastore.NewQuery(uacGenerator.UacKind)
-	query = query.Filter("instrument_name =", strings.ToLower(instrumentName))
-	return query.Filter("case_id = ", strings.ToLower(caseID))
+    query = query.FilterField("instrument_name", "=", strings.ToLower(instrumentName))
+	return query.FilterField(strings.ToLower("case_id"), "=", strings.ToLower(caseID))
 }
 
 func (uacGenerator *UacGenerator) instrumentQuery(instrumentName string) *datastore.Query {
 	query := datastore.NewQuery(uacGenerator.UacKind)
-	return query.Filter("instrument_name =", strings.ToLower(instrumentName))
+	return query.FilterField("instrument_name", "=", strings.ToLower(instrumentName))
 }
 
 func (uacGenerator *UacGenerator) instrumentNamesQuery() *datastore.Query {

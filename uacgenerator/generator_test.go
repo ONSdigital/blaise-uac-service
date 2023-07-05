@@ -191,7 +191,8 @@ var _ = Describe("NewUac", func() {
 		})
 
 		It("Regenerates a new random UAC and saves it to datastore", func() {
-			uacGenerator.NewUac(instrumentName, caseID, 0)
+			_, err := uacGenerator.NewUac(instrumentName, caseID, 0)
+            Expect(err).ShouldNot(HaveOccurred())
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 3)
 		})
 	})
@@ -210,7 +211,8 @@ var _ = Describe("NewUac", func() {
 		})
 
 		It("Saves the UAC to datastore", func() {
-			uacGenerator.NewUac(instrumentName, caseID, 0)
+			_, err := uacGenerator.NewUac(instrumentName, caseID, 0)
+            Expect(err).ShouldNot(HaveOccurred())
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 1)
 		})
 	})
