@@ -3,7 +3,7 @@ package webserver
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 
@@ -64,12 +64,12 @@ func (uacController *UacController) UACInstrumentGenerateEndpoint(context *gin.C
 	}
 	err = uacController.UacGenerator.Generate(instrumentName, caseIDs)
 	if err != nil {
-		context.AbortWithError(http.StatusInternalServerError, err)
+		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	uacs, err := uacController.UacGenerator.GetAllUacs(instrumentName)
 	if err != nil {
-		context.AbortWithError(http.StatusInternalServerError, err)
+		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	uacs.BuildUacChunks()
@@ -77,16 +77,16 @@ func (uacController *UacController) UACInstrumentGenerateEndpoint(context *gin.C
 }
 
 func (uacController *UacController) UACGenerateEndpoint(context *gin.Context) {
-	body, err := ioutil.ReadAll(context.Request.Body)
+	body, err := io.ReadAll(context.Request.Body)
 	if err != nil {
-		context.AbortWithError(http.StatusInternalServerError, err)
+		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	defer context.Request.Body.Close()
 	var uacGenerateRequest UACGenerateRequest
 	err = json.Unmarshal(body, &uacGenerateRequest)
 	if err != nil {
-		context.AbortWithError(http.StatusInternalServerError, err)
+		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	if uacGenerateRequest.InstrumentName == "" {
@@ -95,12 +95,12 @@ func (uacController *UacController) UACGenerateEndpoint(context *gin.Context) {
 	}
 	err = uacController.UacGenerator.Generate(uacGenerateRequest.InstrumentName, uacGenerateRequest.CaseIDs)
 	if err != nil {
-		context.AbortWithError(http.StatusInternalServerError, err)
+		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	uacs, err := uacController.UacGenerator.GetAllUacs(uacGenerateRequest.InstrumentName)
 	if err != nil {
-		context.AbortWithError(http.StatusInternalServerError, err)
+		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	uacs.BuildUacChunks()
@@ -112,7 +112,7 @@ func (uacController *UacController) UACGetAllEndpoint(context *gin.Context) {
 
 	uacs, err := uacController.UacGenerator.GetAllUacs(instrumentName)
 	if err != nil {
-		context.AbortWithError(http.StatusInternalServerError, err)
+		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	uacs.BuildUacChunks()
@@ -124,7 +124,7 @@ func (uacController *UacController) UACGetAllByCaseIDEndpoint(context *gin.Conte
 
 	uacs, err := uacController.UacGenerator.GetAllUacsByCaseID(instrumentName)
 	if err != nil {
-		context.AbortWithError(http.StatusInternalServerError, err)
+		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	uacs.BuildUacChunks()
@@ -134,7 +134,7 @@ func (uacController *UacController) UACGetAllByCaseIDEndpoint(context *gin.Conte
 func (uacController *UacController) ListInstrumentsEndpoint(context *gin.Context) {
 	instrumentNames, err := uacController.UacGenerator.GetInstruments()
 	if err != nil {
-		context.AbortWithError(http.StatusInternalServerError, err)
+		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	context.JSON(http.StatusOK, instrumentNames)
@@ -145,7 +145,7 @@ func (uacController *UacController) UACCountEndpoint(context *gin.Context) {
 
 	uacCount, err := uacController.UacGenerator.GetUacCount(instrumentName)
 	if err != nil {
-		context.AbortWithError(http.StatusInternalServerError, err)
+		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	context.JSON(http.StatusOK, gin.H{"count": uacCount})
@@ -184,16 +184,16 @@ func (uacController *UacController) AdminDeleteEndpoint(context *gin.Context) {
 }
 
 func (uacController *UacController) ImportEndpoint(context *gin.Context) {
-	body, err := ioutil.ReadAll(context.Request.Body)
+	body, err := io.ReadAll(context.Request.Body)
 	if err != nil {
-		context.AbortWithError(http.StatusInternalServerError, err)
+		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	defer context.Request.Body.Close()
 	var uacs []string
 	err = json.Unmarshal(body, &uacs)
 	if err != nil {
-		context.AbortWithError(http.StatusInternalServerError, err)
+		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	importCount, err := uacController.UacGenerator.ImportUACs(uacs)
@@ -202,7 +202,7 @@ func (uacController *UacController) ImportEndpoint(context *gin.Context) {
 			context.AbortWithStatusJSON(http.StatusBadRequest, ResponseError{Error: err.Error()})
 			return
 		}
-		context.AbortWithError(http.StatusInternalServerError, err)
+		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	context.JSON(http.StatusOK, gin.H{"uacs_imported": importCount})
@@ -213,11 +213,11 @@ func (uacController *UacController) blaiseRestApiError(context *gin.Context, err
 		context.AbortWithStatusJSON(http.StatusBadRequest, ResponseError{Error: err.Error()})
 		return
 	}
-	context.AbortWithError(http.StatusInternalServerError, err)
+	_ = context.AbortWithError(http.StatusInternalServerError, err)
 }
 
 func (uacController *UacController) getUacRequest(context *gin.Context) (UACRequest, error) {
-	body, err := ioutil.ReadAll(context.Request.Body)
+	body, err := io.ReadAll(context.Request.Body)
 	if err != nil {
 		return UACRequest{}, err
 	}

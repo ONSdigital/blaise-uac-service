@@ -30,7 +30,7 @@ func main() {
 	}
 	defer dsClient.Close()
 
-	dsQuery := datastore.NewQuery("uac").Filter("instrument_name =", oldInstrumentName)
+	dsQuery := datastore.NewQuery("uac").FilterField("instrument_name", "=", oldInstrumentName)
 
 	dsIt := dsClient.Run(ctx, dsQuery)
 	dsItCount := *dsIt
