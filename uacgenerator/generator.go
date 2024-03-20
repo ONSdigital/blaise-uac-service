@@ -255,6 +255,7 @@ func (uacGenerator *UacGenerator) GetUacCount(instrumentName string) (int, error
 
 func (uacGenerator *UacGenerator) GetUacInfo(uac string) (*UacInfo, error) {
 	uacInfo := &UacInfo{}
+	fmt.Println("BUS UAC Info", uacInfo)
 	err := uacGenerator.DatastoreClient.Get(uacGenerator.Context, uacGenerator.UacKey(uac), uacInfo)
 	if err != nil {
 		return nil, err
