@@ -153,6 +153,7 @@ func (uacController *UacController) UACCountEndpoint(context *gin.Context) {
 
 func (uacController *UacController) GetUacInfoEndpoint(context *gin.Context) {
 	uac, err := uacController.getUacRequest(context)
+	println("UAC", uac)
 	if err != nil {
 		log.Println(err)
 		context.AbortWithStatusJSON(http.StatusBadRequest, nil)
@@ -160,6 +161,7 @@ func (uacController *UacController) GetUacInfoEndpoint(context *gin.Context) {
 	}
 
 	uacInfo, err := uacController.UacGenerator.GetUacInfo(uac.UAC)
+	println("UAC Info", uacInfo)
 	if err != nil {
 		if err == datastore.ErrNoSuchEntity {
 			context.JSON(http.StatusNotFound, nil)
