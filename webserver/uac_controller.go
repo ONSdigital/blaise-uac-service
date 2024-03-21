@@ -153,7 +153,6 @@ func (uacController *UacController) UACCountEndpoint(context *gin.Context) {
 
 func (uacController *UacController) GetUacInfoEndpoint(context *gin.Context) {
 	uac, err := uacController.getUacRequest(context)
-	println("UAC", uac)
 	if err != nil {
 		log.Println(err)
 		context.AbortWithStatusJSON(http.StatusBadRequest, nil)
