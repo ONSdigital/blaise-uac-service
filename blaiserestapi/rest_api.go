@@ -32,6 +32,10 @@ func (blaiseRestApi *BlaiseRestApi) GetCaseIds(instrumentName string) ([]string,
         log.Printf("UAC DEBUG: blaiseRestApi.caseIdsUrl(%v) failed with the following error: %v", instrumentName, err)
 		return nil, err
 	}
+    log.Printf("UAC DEBUG: Request returned from blaiseRestApi.caseIdsUrl(instrumentName): %v", req)
+
+
+
     log.Println("UAC DEBUG: Calling blaiseRestApi.Client.Do(req)...")
 	req.Header.Add("Accept", "application/json")
 	resp, err := blaiseRestApi.Client.Do(req)
@@ -39,6 +43,7 @@ func (blaiseRestApi *BlaiseRestApi) GetCaseIds(instrumentName string) ([]string,
         log.Printf("UAC DEBUG: blaiseRestApi.Client.Do(req) failed with the following error: %v", err)
 		return nil, err
 	}
+    log.Printf("UAC DEBUG: Response returned from blaiseRestApi.Client.Do(req): %v", resp)
 
 	defer resp.Body.Close()
     log.Println("UAC DEBUG: Validating resp.StatusCode...")
