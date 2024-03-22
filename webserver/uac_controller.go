@@ -47,49 +47,48 @@ func (uacController *UacController) AddRoutes(httpRouter *gin.Engine) {
 }
 
 func (uacController *UacController) UACInstrumentGenerateEndpoint(context *gin.Context) {
-	instrumentName := context.Param("instrumentName")
+    log.Println("UAC DEBUG: UACInstrumentGenerateEndpoint started...")
 
+	instrumentName := context.Param("instrumentName")
     log.Printf("UAC DEBUG: Got instrumentName: %v", instrumentName)
-//     log.Printf("EL'S DEBUG: Got instrumentName -> ")
-//     log.Printf(instrumentName)
+
+    log.Println("UAC DEBUG: Calling GetInstrumentModes()...")
 	instrumentModes, err := uacController.BlaiseRestApi.GetInstrumentModes(instrumentName)
 	if err != nil {
-	    log.Println("EL'S DEBUG: failed to get instrument modes -> ")
-	    log.Println(err)
-	    log.Println("EL'S DEBUG: Got instrumentModes -> ")
-	    log.Println(instrumentModes)
+	    log.Printf("UAC DEBUG: Failed to get instrument modes: %v", err)
+	    log.Printf("UAC DEBUG: Got instrumentModes: %v", instrumentModes)
 		uacController.blaiseRestApiError(context, err)
 		return
 	}
+    log.Println("UAC DEBUG: Checking if instrmentModes include CAWI...")
 	if !instrumentModes.HasCawi() {
 		context.AbortWithStatusJSON(http.StatusBadRequest, ResponseError{Error: fmt.Sprintf("Instrument '%s' is not installed in CAWI mode", instrumentName)})
 		return
 	}
+    log.Println("UAC DEBUG: Calling GetCaseIDs...")
 	caseIDs, err := uacController.BlaiseRestApi.GetCaseIds(instrumentName)
 	if err != nil {
-        log.Println("EL'S DEBUG: failed to get caseIds -> ")
-        log.Println(err)
-        log.Println("EL'S DEBUG: Got caseIds -> ")
-        log.Println(caseIDs)
+        log.Printf("UAC DEBUG: Failed to get caseIds: %v", err)
+        log.Printf("UAC DEBUG: Got caseIds: %v", caseIDs)
 		uacController.blaiseRestApiError(context, err)
 		return
 	}
+    log.Println("UAC DEBUG: Generating UACs...")
 	err = uacController.UacGenerator.Generate(instrumentName, caseIDs)
 	if err != nil {
-        log.Println("EL'S DEBUG: failed to get generate UACs -> ")
-        log.Println(err)
+        log.Printf("UAC DEBUG: Failed to generate UACs: %v", err)
 		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+    log.Println("UAC DEBUG: Getting all UACs...")
 	uacs, err := uacController.UacGenerator.GetAllUacs(instrumentName)
 	if err != nil {
-        log.Println("EL'S DEBUG: failed to get all UACs -> ")
-        log.Println(err)
-        log.Println("EL'S DEBUG: Got UACs -> ")
-        log.Println(uacs)
+        log.Printf("UAC DEBUG: Failed to get all UACs: %v", err)
+        log.Printf("UAC DEBUG: Got UACs: %v", uacs)
 		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+    log.Println("UAC DEBUG: Building chunks...")
 	uacs.BuildUacChunks()
 	context.JSON(http.StatusOK, uacs)
 }
