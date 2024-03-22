@@ -31,32 +31,32 @@ func (blaiseRestApi *BlaiseRestApi) GetCaseIds(instrumentName string) ([]string,
         log.Printf("UAC DEBUG: blaiseRestApi.caseIdsUrl(%v) failed with the following error: %v", instrumentName, err)
 		return nil, err
 	}
-    log.Println("UAC DEBUG: Calling blaiseRestApi.Client.Do(req)...")
+//     log.Println("UAC DEBUG: Calling blaiseRestApi.Client.Do(req)...")
 	req.Header.Add("Accept", "application/json")
 	resp, err := blaiseRestApi.Client.Do(req)
 	if err != nil {
-        log.Printf("UAC DEBUG: blaiseRestApi.Client.Do(req) failed with the following error: %v", err)
+//         log.Printf("UAC DEBUG: blaiseRestApi.Client.Do(req) failed with the following error: %v", err)
 		return nil, err
 	}
 
 	defer resp.Body.Close()
-    log.Println("UAC DEBUG: Validating resp.StatusCode...")
+//     log.Println("UAC DEBUG: Validating resp.StatusCode...")
 	if resp.StatusCode == http.StatusNotFound {
-        log.Printf("UAC DEBUG: Validating resp.StatusCode failed with the following error: %v", err)
+//         log.Printf("UAC DEBUG: Validating resp.StatusCode failed with the following error: %v", err)
 		return nil, fmt.Errorf("Instrument not found")
 	}
 
-    log.Println("UAC DEBUG: Getting body from io.ReadAll()...")
+//     log.Println("UAC DEBUG: Getting body from io.ReadAll()...")
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-        log.Printf("UAC DEBUG: Getting body from io.ReadAll() failed with the following error: %v", err)
+//         log.Printf("UAC DEBUG: Getting body from io.ReadAll() failed with the following error: %v", err)
 		return nil, err
 	}
 
-    log.Println("UAC DEBUG: Unmarshalling caseIDs to json...")
+//     log.Println("UAC DEBUG: Unmarshalling caseIDs to json...")
 	var caseIDs []string
 	err = json.Unmarshal(body, &caseIDs)
-    log.Printf("UAC DEBUG: Returning caseIDs (%v) and err (%v)", caseIDs, err)
+//     log.Printf("UAC DEBUG: Returning caseIDs (%v) and err (%v)", caseIDs, err)
 
 	return caseIDs, err
 }
