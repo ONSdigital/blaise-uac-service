@@ -49,9 +49,9 @@ func (uacController *UacController) AddRoutes(httpRouter *gin.Engine) {
 func (uacController *UacController) UACInstrumentGenerateEndpoint(context *gin.Context) {
 	instrumentName := context.Param("instrumentName")
 
-// 	formattedString := fmt.Sprintf("UAC SERVICE DEBUG: Got instrumentName: %v", instrumentName)
-    log.Printf("EL'S DEBUG: Got instrumentName -> ")
-    log.Printf(instrumentName)
+    log.Printf("UAC DEBUG: Got instrumentName: %v", instrumentName)
+//     log.Printf("EL'S DEBUG: Got instrumentName -> ")
+//     log.Printf(instrumentName)
 	instrumentModes, err := uacController.BlaiseRestApi.GetInstrumentModes(instrumentName)
 	if err != nil {
 	    log.Println("EL'S DEBUG: failed to get instrument modes -> ")
