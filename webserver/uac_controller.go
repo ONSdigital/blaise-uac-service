@@ -48,11 +48,12 @@ func (uacController *UacController) AddRoutes(httpRouter *gin.Engine) {
 
 func (uacController *UacController) UACInstrumentGenerateEndpoint(context *gin.Context) {
 	instrumentName := context.Param("instrumentName")
-    log.Println("EL'S DEBUG: Got instrumentName -> ", instrumentName)
+    log.Printf("EL'S DEBUG: Got instrumentName -> ")
+    log.Printf(instrumentName)
 	instrumentModes, err := uacController.BlaiseRestApi.GetInstrumentModes(instrumentName)
 	if err != nil {
-	    log.Println("EL'S DEBUG: failed to get instrument modes -> ", err)
-	    log.Println("EL'S DEBUG: Got instrumentModes -> ", instrumentModes)
+// 	    log.Println("EL'S DEBUG: failed to get instrument modes -> ", err)
+// 	    log.Println("EL'S DEBUG: Got instrumentModes -> ", instrumentModes)
 		uacController.blaiseRestApiError(context, err)
 		return
 	}
@@ -62,21 +63,21 @@ func (uacController *UacController) UACInstrumentGenerateEndpoint(context *gin.C
 	}
 	caseIDs, err := uacController.BlaiseRestApi.GetCaseIds(instrumentName)
 	if err != nil {
-        log.Println("EL'S DEBUG: failed to get caseIds -> ", err)
-        log.Println("EL'S DEBUG: Got caseIds -> ", caseIDs)
+//         log.Println("EL'S DEBUG: failed to get caseIds -> ", err)
+//         log.Println("EL'S DEBUG: Got caseIds -> ", caseIDs)
 		uacController.blaiseRestApiError(context, err)
 		return
 	}
 	err = uacController.UacGenerator.Generate(instrumentName, caseIDs)
 	if err != nil {
-        log.Println("EL'S DEBUG: failed to get generate UACs -> ", err)
+//         log.Println("EL'S DEBUG: failed to get generate UACs -> ", err)
 		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	uacs, err := uacController.UacGenerator.GetAllUacs(instrumentName)
 	if err != nil {
-        log.Println("EL'S DEBUG: failed to get all UACs -> ", err)
-        log.Println("EL'S DEBUG: Got UACs -> ", UACs)
+//         log.Println("EL'S DEBUG: failed to get all UACs -> ", err)
+//         log.Println("EL'S DEBUG: Got UACs -> ", UACs)
 		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
