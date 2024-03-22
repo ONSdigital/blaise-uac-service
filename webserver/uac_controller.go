@@ -81,10 +81,10 @@ func (uacController *UacController) UACInstrumentGenerateEndpoint(context *gin.C
 	}
 	uacs, err := uacController.UacGenerator.GetAllUacs(instrumentName)
 	if err != nil {
-        log.Println("EL'S DEBUG: failed to get all UACs -> ")
-        log.Println(err)
-        log.Println("EL'S DEBUG: Got UACs -> ")
-        log.Println(UACs)
+//         log.Println("EL'S DEBUG: failed to get all UACs -> ")
+//         log.Println(err)
+//         log.Println("EL'S DEBUG: Got UACs -> ")
+//         log.Println(UACs)
 		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
