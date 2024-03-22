@@ -65,21 +65,26 @@ func (uacController *UacController) UACInstrumentGenerateEndpoint(context *gin.C
 	}
 	caseIDs, err := uacController.BlaiseRestApi.GetCaseIds(instrumentName)
 	if err != nil {
-//         log.Println("EL'S DEBUG: failed to get caseIds -> ", err)
-//         log.Println("EL'S DEBUG: Got caseIds -> ", caseIDs)
+        log.Println("EL'S DEBUG: failed to get caseIds -> ")
+        log.Println(err)
+        log.Println("EL'S DEBUG: Got caseIds -> ")
+        log.Println(caseIDs)
 		uacController.blaiseRestApiError(context, err)
 		return
 	}
 	err = uacController.UacGenerator.Generate(instrumentName, caseIDs)
 	if err != nil {
-//         log.Println("EL'S DEBUG: failed to get generate UACs -> ", err)
+        log.Println("EL'S DEBUG: failed to get generate UACs -> ")
+        log.Println(err)
 		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	uacs, err := uacController.UacGenerator.GetAllUacs(instrumentName)
 	if err != nil {
-//         log.Println("EL'S DEBUG: failed to get all UACs -> ", err)
-//         log.Println("EL'S DEBUG: Got UACs -> ", UACs)
+        log.Println("EL'S DEBUG: failed to get all UACs -> ")
+        log.Println(err)
+        log.Println("EL'S DEBUG: Got UACs -> ")
+        log.Println(UACs)
 		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
