@@ -52,8 +52,10 @@ func (uacController *UacController) UACInstrumentGenerateEndpoint(context *gin.C
     log.Printf(instrumentName)
 	instrumentModes, err := uacController.BlaiseRestApi.GetInstrumentModes(instrumentName)
 	if err != nil {
-// 	    log.Println("EL'S DEBUG: failed to get instrument modes -> ", err)
-// 	    log.Println("EL'S DEBUG: Got instrumentModes -> ", instrumentModes)
+	    log.Println("EL'S DEBUG: failed to get instrument modes -> ")
+	    log.Println(err)
+	    log.Println("EL'S DEBUG: Got instrumentModes -> ")
+	    log.Println(instrumentModes)
 		uacController.blaiseRestApiError(context, err)
 		return
 	}
