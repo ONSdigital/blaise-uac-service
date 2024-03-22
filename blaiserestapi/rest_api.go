@@ -53,6 +53,7 @@ func (blaiseRestApi *BlaiseRestApi) GetCaseIds(instrumentName string) ([]string,
         log.Printf("UAC DEBUG: Getting body from io.ReadAll() failed with the following error: %v", err)
 		return nil, err
 	}
+    log.Printf("UAC DEBUG: Body returned from io.ReadAll(): %v", body)
 
     log.Println("UAC DEBUG: Unmarshalling caseIDs to json...")
 	var caseIDs []string
