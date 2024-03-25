@@ -12,6 +12,7 @@ import (
 type dsEntityStruct struct {
 	InstrumentName string `json:"instrument_name" datastore:"instrument_name"`
 	CaseID string `json:"case_id" datastore:"case_id"`
+	Disabled *bool `json:"disabled" datastore:"disabled"`
 }
 
 func main() {
