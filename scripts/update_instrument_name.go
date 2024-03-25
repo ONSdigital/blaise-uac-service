@@ -1,17 +1,18 @@
 package main
 
 import (
-		"os"
-        "context"
-        "log"
-		"fmt"
-        "cloud.google.com/go/datastore"
-		"google.golang.org/api/iterator"
+	"context"
+	"fmt"
+	"log"
+	"os"
+	"cloud.google.com/go/datastore"
+	"google.golang.org/api/iterator"
 )
 
 type dsEntityStruct struct {
 	InstrumentName string `json:"instrument_name" datastore:"instrument_name"`
 	CaseID string `json:"case_id" datastore:"case_id"`
+	Disabled *bool `json:"disabled" datastore:"disabled"`
 }
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 	uacCount := 0
 	uacUpdatedCount := 0
 
-	ctx := context.Background()	
+	ctx := context.Background()
 
 	dsClient, err := datastore.NewClient(ctx, projectID)
 	if err != nil {
