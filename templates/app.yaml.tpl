@@ -1,5 +1,5 @@
 service: bus
-runtime: go119
+runtime: go122
 
 env_variables:
   DATASTORE_PROJECT: _DATASTORE_PROJECT
