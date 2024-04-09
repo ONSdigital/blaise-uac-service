@@ -27,7 +27,7 @@ jobs:
       - name: Set up Go 1.22
         run: |
           # Download and extract Go 1.22
-          wget https://golang.org/dl/go1.22.linux-amd64.tar.gz
+          wget https://go.dev/dl/go1.22.2.linux-amd64.tar.gz
           sudo tar -C /usr/local -xzf go1.22.linux-amd64.tar.gz
           # Set up Go environment variables
           echo 'export PATH=$PATH:/usr/local/go/bin' >> $GITHUB_ENV
