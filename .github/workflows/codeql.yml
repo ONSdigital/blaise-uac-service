@@ -23,7 +23,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
+      
+      - name: Set up Go 1.22
+        run: |
+          # Download and extract Go 1.22
+          wget https://golang.org/dl/go1.22.linux-amd64.tar.gz
+          sudo tar -C /usr/local -xzf go1.22.linux-amd64.tar.gz
+          # Set up Go environment variables
+          echo 'export PATH=$PATH:/usr/local/go/bin' >> $GITHUB_ENV
+          echo 'export GOROOT=/usr/local/go' >> $GITHUB_ENV
+          echo 'export GOPATH=$HOME/go' >> $GITHUB_ENV
+          echo 'export GO111MODULE=on' >> $GITHUB_ENV 
+          
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
         with:
