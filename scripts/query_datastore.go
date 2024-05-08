@@ -35,15 +35,7 @@ type dsEntityStruct struct {
 func main() {
 
 	projectID := os.Getenv("PROJECT_ID")
-	// instrumentNames := []string{"OPN2400T"}
-	// instrumentNames := []string{"LMS2401_TS7", "OPN2400T", "LMS2403_TS8"}
-	instrumentNames := []string{"LMS2402_TS7", "YPS2402A", "LMS2404_HQ1", "LMS2404_HR1", "LMS2404_HE2", "LMS2404_HS1", "LMS2404_HF2", 
-	"LMS2405_HU1", "LMS2405_HH2", "LMS2405_HT1", "LMS2405_HG2", "LMS2405_HV1", "LMS2405_HI2", "HSE2401", "OPN2405L", "LMS2404_HD2",
-	"LMS2404_HP1", "OPN2404K"}
-	
-	// maybes = "IPS2405a", "IPS2404a" 
-
-	//uacUpdatedCount := 0
+	instrumentNames := []string{}
 
 	ctx := context.Background()	
 
@@ -116,7 +108,5 @@ func main() {
 		}
 		fmt.Println("Deleted", callHistoryToDeleteCount, "datastore entries for instrument name", instrumentName)	
 	}
-	
-	// fmt.Println("Deleted", uacUpdatedCount, "datastore entries for instrument name", instrumentName)
 }
 
