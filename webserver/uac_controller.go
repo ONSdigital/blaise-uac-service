@@ -161,7 +161,6 @@ func (uacController *UacController) GetUacInfoEndpoint(context *gin.Context) {
 	}
 
 	uacInfo, err := uacController.UacGenerator.GetUacInfo(uac.UAC)
-	println("UAC Info", uacInfo)
 	if err != nil {
 		if err == datastore.ErrNoSuchEntity {
 			context.JSON(http.StatusNotFound, nil)
