@@ -19,8 +19,16 @@ type dsEntityStruct struct {
 func main() {
 
 	projectID := os.Getenv("PROJECT_ID")
-	uacsToEnable := strings.Split(os.Getenv("UACS_TO_ENABLE"), ",")
-	uacsToDisable := strings.Split(os.Getenv("UACS_TO_DISABLE"), ",")
+
+	uacsToEnable := []string{}
+	if envValue := os.Getenv("UACS_TO_ENABLE"); envValue != "" {
+		uacsToEnable = strings.Split(envValue, ",")
+	}
+
+	uacsToDisable := []string{}
+	if envValue := os.Getenv("UACS_TO_DISABLE"); envValue != "" {
+		uacsToDisable = strings.Split(envValue, ",")
+	}
 
 	ctx := context.Background()
 	dsClient, err := datastore.NewClient(ctx, projectID)
@@ -30,7 +38,7 @@ func main() {
 	defer func(dsClient *datastore.Client) {
 		err := dsClient.Close()
 		if err != nil {
-
+			log.Fatal(err)
 		}
 	}(dsClient)
 
@@ -46,7 +54,7 @@ func changeDisabledState(uacs []string, dsClient *datastore.Client, ctx context.
 		var entity dsEntityStruct
 		err := dsClient.Get(ctx, key, &entity)
 		if err != nil {
-			return
+			log.Fatal(err)
 		}
 
 		message := func(disabled bool) string {
