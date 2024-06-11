@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"cloud.google.com/go/datastore"
-	"google.golang.org/api/iterator"
 )
 
 type dsEntityStruct struct {
@@ -20,11 +19,8 @@ type dsEntityStruct struct {
 func main() {
 
 	projectID := os.Getenv("PROJECT_ID")
-	uacsToEnableItems := strings.Split(os.Getenv("UACS_TO_ENABLE"), ",")
-	uacsToDisableItems := strings.Split(os.Getenv("UACS_TO_DISABLE"), ",")
-
-	uacEnableUpdatedCount := 0
-	uacDisableUpdatedCount := 0
+	uacsToEnable := strings.Split(os.Getenv("UACS_TO_ENABLE"), ",")
+	uacsToDisable := strings.Split(os.Getenv("UACS_TO_DISABLE"), ",")
 
 	ctx := context.Background()
 	dsClient, err := datastore.NewClient(ctx, projectID)
@@ -38,55 +34,33 @@ func main() {
 		}
 	}(dsClient)
 
-	dsQuery := datastore.NewQuery("uac")
+	changeDisabledState(uacsToEnable, dsClient, ctx, false)
+	changeDisabledState(uacsToDisable, dsClient, ctx, true)
+}
 
-	dsIterator := dsClient.Run(ctx, dsQuery)
+func changeDisabledState(uacs []string, dsClient *datastore.Client, ctx context.Context, disabled bool) {
+	for _, keyName := range uacs {
 
-	for {
+		key := datastore.NameKey("uac", keyName, nil)
+
 		var entity dsEntityStruct
-
-		key, err := dsIterator.Next(&entity)
-		if err == iterator.Done {
-			break
-		}
+		err := dsClient.Get(ctx, key, &entity)
 		if err != nil {
+			return
+		}
+
+		message := func(disabled bool) string {
+			if disabled {
+				return "Disabling UAC"
+			}
+			return "Enabling UAC"
+		}(disabled)
+
+		fmt.Println(message, keyName)
+		entity.Disabled = disabled
+
+		if _, err := dsClient.Put(ctx, key, &entity); err != nil {
 			log.Fatal(err)
 		}
-
-		for _, uac := range uacsToEnableItems {
-			if key.Name == uac {
-
-				dsEntityKey := datastore.NameKey("uac", key.Name, nil)
-				entity.Disabled = false
-
-				if _, err := dsClient.Put(ctx, dsEntityKey, &entity); err != nil {
-					log.Fatal(err)
-				}
-
-				fmt.Println("Enabled UAC", key.Name)
-				uacEnableUpdatedCount++
-				break
-			}
-		}
-
-		for _, uac := range uacsToDisableItems {
-			if key.Name == uac {
-				dsEntityKey := datastore.NameKey("uac", key.Name, nil)
-
-				entity.Disabled = true
-
-				if _, err := dsClient.Put(ctx, dsEntityKey, &entity); err != nil {
-					log.Fatal(err)
-				}
-
-				fmt.Println("Disabled UAC", key.Name)
-				uacDisableUpdatedCount++
-				break
-			}
-		}
-
 	}
-
-	fmt.Println("Enabled", uacEnableUpdatedCount, "UACs")
-	fmt.Println("Disabled", uacDisableUpdatedCount, "UACs")
 }
