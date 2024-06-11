@@ -71,7 +71,7 @@ type UacInfo struct {
 	UacChunks      *UacChunks     `json:"uac_chunks,omitempty" datastore:"-"`
 	UAC            *datastore.Key `json:"-" datastore:"__key__"`
 	FullUAC        string         `json:"full_uac,omitempty" datastore:"-"`
-	Disabled       *bool          `json:"disabled" datastore:"disabled"`
+	Disabled       bool           `json:"disabled" datastore:"disabled"`
 }
 
 type Uacs map[string]*UacInfo

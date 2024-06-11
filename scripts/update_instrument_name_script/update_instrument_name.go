@@ -1,12 +1,13 @@
 package main
 
 import (
-	"cloud.google.com/go/datastore"
 	"context"
 	"fmt"
-	"google.golang.org/api/iterator"
 	"log"
 	"os"
+
+	"cloud.google.com/go/datastore"
+	"google.golang.org/api/iterator"
 )
 
 type dsEntityStruct struct {

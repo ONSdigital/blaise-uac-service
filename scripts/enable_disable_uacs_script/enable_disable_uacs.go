@@ -1,14 +1,21 @@
 package main
 
 import (
-	"cloud.google.com/go/datastore"
 	"context"
 	"fmt"
-	"google.golang.org/api/iterator"
 	"log"
 	"os"
 	"strings"
+
+	"cloud.google.com/go/datastore"
+	"google.golang.org/api/iterator"
 )
+
+type dsEntityStruct struct {
+	InstrumentName string `json:"instrument_name" datastore:"instrument_name"`
+	CaseID         string `json:"case_id" datastore:"case_id"`
+	Disabled       bool   `json:"disabled" datastore:"disabled"`
+}
 
 func main() {
 
