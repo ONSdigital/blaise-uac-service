@@ -20,11 +20,6 @@ func main() {
 
 	projectID := os.Getenv("PROJECT_ID")
 
-	uacsToEnable := []string{}
-	if envValue := os.Getenv("UACS_TO_ENABLE"); envValue != "" {
-		uacsToEnable = strings.Split(envValue, ",")
-	}
-
 	uacsToDisable := []string{}
 	if envValue := os.Getenv("UACS_TO_DISABLE"); envValue != "" {
 		uacsToDisable = strings.Split(envValue, ",")
@@ -42,12 +37,7 @@ func main() {
 		}
 	}(dsClient)
 
-	changeDisabledState(uacsToEnable, dsClient, ctx, false)
-	changeDisabledState(uacsToDisable, dsClient, ctx, true)
-}
-
-func changeDisabledState(uacs []string, dsClient *datastore.Client, ctx context.Context, disabled bool) {
-	for _, keyName := range uacs {
+	for _, keyName := range uacsToDisable {
 
 		key := datastore.NameKey("uac", keyName, nil)
 
@@ -57,18 +47,12 @@ func changeDisabledState(uacs []string, dsClient *datastore.Client, ctx context.
 			log.Fatal(err)
 		}
 
-		message := func(disabled bool) string {
-			if disabled {
-				return "Disabling UAC"
-			}
-			return "Enabling UAC"
-		}(disabled)
-
-		fmt.Println(message, keyName)
-		entity.Disabled = disabled
+		fmt.Println("Disabling UAC", keyName)
+		entity.Disabled = true
 
 		if _, err := dsClient.Put(ctx, key, &entity); err != nil {
 			log.Fatal(err)
 		}
 	}
+
 }

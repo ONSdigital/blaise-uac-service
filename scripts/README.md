@@ -3,7 +3,7 @@
 Just some useful support scripts for running locally...
 
 
-## logging in
+## Prerequisites to running scripts
 
 Login to the GCP CLI:
 ```
@@ -51,9 +51,9 @@ go run update_instrument_name.go
 ```
 
 
-## enable_disable_uacs
+## disable_uacs
 
-Updates all cases with specific uac's to be disabled/enabled
+Updates all cases with specific uac's to be disabled
 
 Obviously be **VERY CAREFUL** if running in prod!
 
@@ -64,7 +64,6 @@ Unix:
 export GOOGLE_APPLICATION_CREDENTIALS=keys.json
 export PROJECT_ID=ons-blaise-v2-dev-<sandbox>
 export UACS_TO_DISABLE=<uac>,<uac>
-export UACS_TO_ENABLE=<uac>,<uac>,<uac>
 ```
 
 Windows:
@@ -72,10 +71,36 @@ Windows:
 set GOOGLE_APPLICATION_CREDENTIALS=keys.json
 set PROJECT_ID=ons-blaise-v2-dev-<sandbox>
 set UACS_TO_DISABLE=<uac>,<uac>
-set UACS_TO_ENABLE=<uac>,<uac>,<uac>
 ```
 
 Run da ting:
 ```
 go run enable_disable_uacs.go
+```
+
+## enable_uacs
+
+Updates all cases with specific uac's to be enabled
+
+Obviously be **VERY CAREFUL** if running in prod!
+
+Set some local env vars:
+
+Unix:
+```
+export GOOGLE_APPLICATION_CREDENTIALS=keys.json
+export PROJECT_ID=ons-blaise-v2-dev-<sandbox>
+export UACS_TO_ENABLE=<uac>,<uac>,<uac>
+```
+
+Windows:
+```
+set GOOGLE_APPLICATION_CREDENTIALS=keys.json
+set PROJECT_ID=ons-blaise-v2-dev-<sandbox>
+set UACS_TO_ENABLE=<uac>,<uac>,<uac>
+```
+
+Run da ting:
+```
+go run enable_uacs.go
 ```
