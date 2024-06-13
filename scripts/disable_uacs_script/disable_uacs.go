@@ -22,7 +22,7 @@ func main() {
 
 	uacsToDisable := []string{}
 	if envValue := os.Getenv("UACS_TO_DISABLE"); envValue != "" {
-		uacsToDisable = strings.Split(envValue, ",")
+		uacsToDisable = strings.Split(strings.TrimSpace(envValue), ",")
 	}
 
 	ctx := context.Background()
