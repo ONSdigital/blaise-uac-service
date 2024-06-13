@@ -75,7 +75,7 @@ set UACS_TO_DISABLE=<uac>,<uac>
 
 Run da ting:
 ```
-go run enable_disable_uacs.go
+go run disable_uacs.go
 ```
 
 ## enable_uacs
