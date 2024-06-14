@@ -2,7 +2,6 @@
 
 Just some useful support scripts for running locally...
 
-
 ## Prerequisites to running scripts
 
 Login to the GCP CLI:
