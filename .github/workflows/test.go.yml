@@ -26,4 +26,3 @@ jobs:
         run: bash <(curl -s https://codecov.io/bash) -t ${{ secrets.CODECOV_TOKEN }} -B Blais5-4054 -P ${{ github.event.pull_request.head.ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
