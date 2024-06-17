@@ -24,7 +24,7 @@ type UACRequest struct {
 type UACGenerateRequest struct {
 	InstrumentName string   `json:"instrument_name"`
 	CaseIDs        []string `json:"case_ids"`
-	Disabled       *bool    `json:"disabled" datastore:"disabled"`
+	Disabled       bool     `json:"disabled" datastore:"disabled"`
 }
 
 type UacController struct {
