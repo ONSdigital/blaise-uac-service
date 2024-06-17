@@ -2,3 +2,6 @@
 /workspace.xml
 .idea
 app.yaml
+
+/scripts/disable_uacs_script/keys.json
+/scripts/enable_uacs_script/keys.json

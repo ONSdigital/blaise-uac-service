@@ -22,7 +22,8 @@ const (
 	UNKNOWNINSTRUMENT  = "unknown"
 )
 
-//Generate mocks by running "go generate ./..."
+// Generate mocks by running "go generate ./..."
+//
 //go:generate mockery --name UacGeneratorInterface
 type UacGeneratorInterface interface {
 	Generate(string, []string) error
@@ -35,7 +36,8 @@ type UacGeneratorInterface interface {
 	AdminDelete(string) error
 }
 
-//Generate mocks by running "go generate ./..."
+// Generate mocks by running "go generate ./..."
+//
 //go:generate mockery --name Datastore
 type Datastore interface {
 	Mutate(context.Context, ...*datastore.Mutation) ([]*datastore.Key, error)
@@ -69,6 +71,7 @@ type UacInfo struct {
 	UacChunks      *UacChunks     `json:"uac_chunks,omitempty" datastore:"-"`
 	UAC            *datastore.Key `json:"-" datastore:"__key__"`
 	FullUAC        string         `json:"full_uac,omitempty" datastore:"-"`
+	Disabled       bool           `json:"disabled" datastore:"disabled"`
 }
 
 type Uacs map[string]*UacInfo
@@ -204,11 +207,11 @@ func (uacGenerator *UacGenerator) Generate(instrumentName string, caseIDs []stri
 		go func(caseID string) {
 			defer concurrent.Done()
 			err := uacGenerator.GenerateUniqueUac(instrumentName, caseID)
-            if err != nil {
-                uacGenerator.mu.Lock()
-                uacGenerator.GenerateError[instrumentName] = err
-                uacGenerator.mu.Unlock()
-            }
+			if err != nil {
+				uacGenerator.mu.Lock()
+				uacGenerator.GenerateError[instrumentName] = err
+				uacGenerator.mu.Unlock()
+			}
 		}(caseID)
 	}
 	concurrent.WaitAllDone()
@@ -468,7 +471,7 @@ func (uacGenerator *UacGenerator) adminDeleteChunk(uacKeyChunk []*datastore.Key,
 
 func (uacGenerator *UacGenerator) instrumentCaseQuery(instrumentName, caseID string) *datastore.Query {
 	query := datastore.NewQuery(uacGenerator.UacKind)
-    query = query.FilterField("instrument_name", "=", strings.ToLower(instrumentName))
+	query = query.FilterField("instrument_name", "=", strings.ToLower(instrumentName))
 	return query.FilterField(strings.ToLower("case_id"), "=", strings.ToLower(caseID))
 }
 
