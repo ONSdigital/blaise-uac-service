@@ -399,4 +399,38 @@ var _ = Describe("UAC Controller", func() {
 			})
 		})
 	})
+
+	Describe("GET /uacs/uac/:instrumentName/disabled", func() {
+		var (
+			httpRecorder *httptest.ResponseRecorder
+		)
+
+		JustBeforeEach(func() {
+			httpRecorder = httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/uacs/uac/test123/disabled", nil)
+			httpRouter.ServeHTTP(httpRecorder, req)
+		})
+
+		BeforeEach(func() {
+			mockUacGenerator.On("GetAllUacsDisabled", "test123").Return(uacgenerator.Uacs{
+				"12452": {
+					InstrumentName: "test123",
+					CaseID:         "12452",
+					FullUAC:        "125634896985",
+					Disabled:       true,
+				},
+				"65858": {
+					InstrumentName: "test123",
+					CaseID:         "65858",
+					FullUAC:        "78945612309",
+					Disabled:       true,
+				},
+			}, nil)
+		})
+
+		It("Gets all UACs for an installed instrument that are disabled", func() {
+			Expect(httpRecorder.Code).To(Equal(http.StatusOK))
+			Expect(httpRecorder.Body.String()).To(Equal(`{"12452":{"instrument_name":"test123","case_id":"12452","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"},"full_uac":"125634896985","disabled":true},"65858":{"instrument_name":"test123","case_id":"65858","uac_chunks":{"uac1":"7894","uac2":"5612","uac3":"309"},"full_uac":"78945612309","disabled":true}}`))
+		})
+	})
 })
