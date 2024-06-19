@@ -78,6 +78,7 @@ type UacInfo struct {
 type Uacs map[string]*UacInfo
 
 func (uacs Uacs) BuildUacChunks() {
+	log.Println("Building UAC chunks for", len(uacs), " UACs")
 	for uac, uacInfo := range uacs {
 		if uacInfo.FullUAC != "" {
 			uac = uacInfo.FullUAC

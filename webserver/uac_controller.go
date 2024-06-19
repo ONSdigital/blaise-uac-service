@@ -261,11 +261,18 @@ func (uacController *UacController) UACEnableEndpoint(context *gin.Context) {
 
 func (uacController *UacController) UACGetAllDisabledEndpoint(context *gin.Context) {
 	instrumentName := context.Param("instrumentName")
+
+	log.Println("Getting all disabled UACs for instrument: ", instrumentName)
+
 	uacs, err := uacController.UacGenerator.GetAllUacsDisabled(instrumentName)
 	if err != nil {
 		_ = context.AbortWithError(http.StatusInternalServerError, err)
+		log.Println(err.Error())
 		return
 	}
 	uacs.BuildUacChunks()
+	log.Println("*************** Returning StatusOK and uacs")
+	log.Println(uacs)
+	log.Println("***************")
 	context.JSON(http.StatusOK, uacs)
 }
