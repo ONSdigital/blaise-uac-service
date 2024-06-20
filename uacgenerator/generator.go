@@ -502,8 +502,11 @@ func (uacGenerator *UacGenerator) instrumentQuery(instrumentName string) *datast
 
 func (uacGenerator *UacGenerator) instrumentUacDisabledQuery(instrumentName string) *datastore.Query {
 	query := datastore.NewQuery(uacGenerator.UacKind)
-	query = query.FilterField("instrument_name", "=", strings.ToLower(instrumentName))
-	return query.FilterField(strings.ToLower("disabled"), "=", true)
+
+	// TODO: BL removing Filter field to test if some uacs are being returned
+	return query.FilterField("instrument_name", "=", strings.ToLower(instrumentName))
+	//query = query.FilterField("instrument_name", "=", strings.ToLower(instrumentName))
+	//return query.FilterField(strings.ToLower("disabled"), "=", true)
 }
 
 func (uacGenerator *UacGenerator) instrumentNamesQuery() *datastore.Query {
