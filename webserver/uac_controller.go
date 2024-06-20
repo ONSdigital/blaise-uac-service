@@ -262,6 +262,9 @@ func (uacController *UacController) UACEnableEndpoint(context *gin.Context) {
 func (uacController *UacController) UACGetAllDisabledEndpoint(context *gin.Context) {
 	instrumentName := context.Param("instrumentName")
 
+	// TODO: Testing BUS UI is reaching this endpoint. Remove after
+	context.JSON(http.StatusOK, "Getting into uac_controller.go UACGetAllDisabledEndpoint and receiving instrument> "+instrumentName)
+
 	log.Println("Getting all disabled UACs for instrument: ", instrumentName)
 
 	uacs, err := uacController.UacGenerator.GetAllUacsDisabled(instrumentName)
