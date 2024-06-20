@@ -35,6 +35,8 @@ type UacGeneratorInterface interface {
 	GetInstruments() ([]string, error)
 	ImportUACs([]string) (int, error)
 	AdminDelete(string) error
+	DisableUac(string) error
+	EnableUac(string) error
 }
 
 // Generate mocks by running "go generate ./..."
@@ -78,7 +80,6 @@ type UacInfo struct {
 type Uacs map[string]*UacInfo
 
 func (uacs Uacs) BuildUacChunks() {
-	log.Println("Building UAC chunks for", len(uacs), " UACs")
 	for uac, uacInfo := range uacs {
 		if uacInfo.FullUAC != "" {
 			uac = uacInfo.FullUAC
@@ -254,7 +255,6 @@ func (uacGenerator *UacGenerator) GetAllUacsByCaseID(instrumentName string) (Uac
 	return uacs, nil
 }
 
-// TODO: Need to check if it is working correctly
 func (uacGenerator *UacGenerator) GetAllUacsDisabled(instrumentName string) (Uacs, error) {
 	var uacInfos []*UacInfo
 	_, err := uacGenerator.DatastoreClient.GetAll(uacGenerator.Context, uacGenerator.instrumentUacDisabledQuery(instrumentName), &uacInfos)
@@ -270,6 +270,44 @@ func (uacGenerator *UacGenerator) GetAllUacsDisabled(instrumentName string) (Uac
 		return nil, fmt.Errorf("Fewer case ids than uacs, must be duplicate case ids")
 	}
 	return uacs, nil
+}
+
+// TODO: Implement
+func (uacGenerator *UacGenerator) DisableUac(uac string) error {
+	uacInfo := &UacInfo{}
+	err := uacGenerator.DatastoreClient.Get(uacGenerator.Context, uacGenerator.UacKey(uac), uacInfo)
+	if err != nil {
+		return err
+	}
+	newUACMutation := datastore.NewInsert(uacGenerator.UacKey(uac), &UacInfo{
+		InstrumentName: strings.ToLower(uacInfo.InstrumentName),
+		CaseID:         strings.ToLower(uacInfo.CaseID),
+		Disabled:       true,
+	})
+	_, err = uacGenerator.DatastoreClient.Mutate(uacGenerator.Context, newUACMutation)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// TODO: Implement
+func (uacGenerator *UacGenerator) EnableUac(uac string) error {
+	uacInfo := &UacInfo{}
+	err := uacGenerator.DatastoreClient.Get(uacGenerator.Context, uacGenerator.UacKey(uac), uacInfo)
+	if err != nil {
+		return err
+	}
+	newUACMutation := datastore.NewInsert(uacGenerator.UacKey(uac), &UacInfo{
+		InstrumentName: strings.ToLower(uacInfo.InstrumentName),
+		CaseID:         strings.ToLower(uacInfo.CaseID),
+		Disabled:       false,
+	})
+	_, err = uacGenerator.DatastoreClient.Mutate(uacGenerator.Context, newUACMutation)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (uacGenerator *UacGenerator) GetUacCount(instrumentName string) (int, error) {

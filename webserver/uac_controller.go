@@ -45,8 +45,8 @@ func (uacController *UacController) AddRoutes(httpRouter *gin.Engine) {
 		uacsGroup.GET("/instruments", uacController.ListInstrumentsEndpoint)
 		uacsGroup.POST("/import", uacController.ImportEndpoint)
 
-		//uacsGroup.GET("/uac/:uac/disable", uacController.UACDisableEndpoint)
-		//uacsGroup.GET("/uac/:uac/enable", uacController.UACEnableEndpoint)
+		uacsGroup.GET("/uac/disable/:uac", uacController.UACDisableEndpoint)
+		uacsGroup.GET("/uac/enable/:uac", uacController.UACEnableEndpoint)
 		uacsGroup.GET("/uac/:instrumentName/disabled", uacController.UACGetAllDisabledEndpoint)
 
 	}
@@ -238,25 +238,25 @@ func (uacController *UacController) getUacRequest(context *gin.Context) (UACRequ
 }
 
 func (uacController *UacController) UACDisableEndpoint(context *gin.Context) {
-	// uac := context.Param("uac")
+	uac := context.Param("uac")
 	// TODO: Code below is copy/pasted, need to change
-	instrumentNames, err := uacController.UacGenerator.GetInstruments()
+	err := uacController.UacGenerator.DisableUac(uac)
 	if err != nil {
 		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	context.JSON(http.StatusOK, instrumentNames)
+	context.JSON(http.StatusOK, nil)
 }
 
 func (uacController *UacController) UACEnableEndpoint(context *gin.Context) {
-	// uac := context.Param("uac")
+	uac := context.Param("uac")
 	// TODO: Code below is copy/pasted, need to change
-	instrumentNames, err := uacController.UacGenerator.GetInstruments()
+	err := uacController.UacGenerator.EnableUac(uac)
 	if err != nil {
 		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	context.JSON(http.StatusOK, instrumentNames)
+	context.JSON(http.StatusOK, nil)
 }
 
 func (uacController *UacController) UACGetAllDisabledEndpoint(context *gin.Context) {
