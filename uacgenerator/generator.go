@@ -279,7 +279,7 @@ func (uacGenerator *UacGenerator) DisableUac(uac string) error {
 	if err != nil {
 		return err
 	}
-	newUACMutation := datastore.NewInsert(uacGenerator.UacKey(uac), &UacInfo{
+	newUACMutation := datastore.NewUpdate(uacGenerator.UacKey(uac), &UacInfo{
 		InstrumentName: strings.ToLower(uacInfo.InstrumentName),
 		CaseID:         strings.ToLower(uacInfo.CaseID),
 		Disabled:       true,
@@ -298,7 +298,7 @@ func (uacGenerator *UacGenerator) EnableUac(uac string) error {
 	if err != nil {
 		return err
 	}
-	newUACMutation := datastore.NewInsert(uacGenerator.UacKey(uac), &UacInfo{
+	newUACMutation := datastore.NewUpdate(uacGenerator.UacKey(uac), &UacInfo{
 		InstrumentName: strings.ToLower(uacInfo.InstrumentName),
 		CaseID:         strings.ToLower(uacInfo.CaseID),
 		Disabled:       false,
