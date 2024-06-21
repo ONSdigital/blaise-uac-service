@@ -272,7 +272,6 @@ func (uacGenerator *UacGenerator) GetAllUacsDisabled(instrumentName string) (Uac
 	return uacs, nil
 }
 
-// TODO: Implement
 func (uacGenerator *UacGenerator) DisableUac(uac string) error {
 	uacInfo := &UacInfo{}
 	err := uacGenerator.DatastoreClient.Get(uacGenerator.Context, uacGenerator.UacKey(uac), uacInfo)
@@ -291,7 +290,6 @@ func (uacGenerator *UacGenerator) DisableUac(uac string) error {
 	return nil
 }
 
-// TODO: Implement
 func (uacGenerator *UacGenerator) EnableUac(uac string) error {
 	uacInfo := &UacInfo{}
 	err := uacGenerator.DatastoreClient.Get(uacGenerator.Context, uacGenerator.UacKey(uac), uacInfo)

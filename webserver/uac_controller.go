@@ -219,6 +219,10 @@ func (uacController *UacController) blaiseRestApiError(context *gin.Context, err
 		context.AbortWithStatusJSON(http.StatusBadRequest, ResponseError{Error: err.Error()})
 		return
 	}
+	if err.Error() == "invalid uac" {
+		context.AbortWithStatusJSON(http.StatusBadRequest, ResponseError{Error: err.Error()})
+		return
+	}
 	_ = context.AbortWithError(http.StatusInternalServerError, err)
 }
 
@@ -239,10 +243,10 @@ func (uacController *UacController) getUacRequest(context *gin.Context) (UACRequ
 
 func (uacController *UacController) UACDisableEndpoint(context *gin.Context) {
 	uac := context.Param("uac")
-	// TODO: Code below is copy/pasted, need to change
+
 	err := uacController.UacGenerator.DisableUac(uac)
 	if err != nil {
-		_ = context.AbortWithError(http.StatusInternalServerError, err)
+		uacController.blaiseRestApiError(context, err)
 		return
 	}
 	context.JSON(http.StatusOK, nil)
@@ -250,10 +254,10 @@ func (uacController *UacController) UACDisableEndpoint(context *gin.Context) {
 
 func (uacController *UacController) UACEnableEndpoint(context *gin.Context) {
 	uac := context.Param("uac")
-	// TODO: Code below is copy/pasted, need to change
+
 	err := uacController.UacGenerator.EnableUac(uac)
 	if err != nil {
-		_ = context.AbortWithError(http.StatusInternalServerError, err)
+		uacController.blaiseRestApiError(context, err)
 		return
 	}
 	context.JSON(http.StatusOK, nil)
@@ -264,7 +268,7 @@ func (uacController *UacController) UACGetAllDisabledEndpoint(context *gin.Conte
 
 	uacs, err := uacController.UacGenerator.GetAllUacsDisabled(instrumentName)
 	if err != nil {
-		_ = context.AbortWithError(http.StatusInternalServerError, err)
+		uacController.blaiseRestApiError(context, err)
 		return
 	}
 	uacs.BuildUacChunks()
