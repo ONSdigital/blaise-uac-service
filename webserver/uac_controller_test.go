@@ -399,4 +399,141 @@ var _ = Describe("UAC Controller", func() {
 			})
 		})
 	})
+
+	Describe("GET /uacs/uac/:instrumentName/disabled", func() {
+		var (
+			httpRecorder *httptest.ResponseRecorder
+		)
+
+		JustBeforeEach(func() {
+			httpRecorder = httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/uacs/uac/test123/disabled", nil)
+			httpRouter.ServeHTTP(httpRecorder, req)
+		})
+
+		BeforeEach(func() {
+			mockUacGenerator.On("GetAllUacsDisabled", "test123").Return(uacgenerator.Uacs{
+				"12452": {
+					InstrumentName: "test123",
+					CaseID:         "12452",
+					FullUAC:        "125634896985",
+					Disabled:       true,
+				},
+				"65858": {
+					InstrumentName: "test123",
+					CaseID:         "65858",
+					FullUAC:        "78945612309",
+					Disabled:       true,
+				},
+			}, nil)
+		})
+
+		It("Gets all UACs for an installed instrument that are disabled", func() {
+			Expect(httpRecorder.Code).To(Equal(http.StatusOK))
+			Expect(httpRecorder.Body.String()).To(Equal(`{"12452":{"instrument_name":"test123","case_id":"12452","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"},"full_uac":"125634896985","disabled":true},"65858":{"instrument_name":"test123","case_id":"65858","uac_chunks":{"uac1":"7894","uac2":"5612","uac3":"309"},"full_uac":"78945612309","disabled":true}}`))
+		})
+	})
+
+	Describe("GET /uacs/disable/:uac", func() {
+		var (
+			httpRecorder *httptest.ResponseRecorder
+		)
+
+		JustBeforeEach(func() {
+			httpRecorder = httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/uacs/uac/disable/123456789", nil)
+			httpRouter.ServeHTTP(httpRecorder, req)
+		})
+
+		BeforeEach(func() {
+			mockUacGenerator.On("DisableUac", "123456789").Return(nil)
+		})
+
+		It("Sets the Disabled flag to true", func() {
+			Expect(httpRecorder.Code).To(Equal(http.StatusOK))
+		})
+	})
+
+	Describe("GET /uacs/enable/:uac", func() {
+		var (
+			httpRecorder *httptest.ResponseRecorder
+		)
+
+		JustBeforeEach(func() {
+			httpRecorder = httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/uacs/uac/enable/87654321", nil)
+			httpRouter.ServeHTTP(httpRecorder, req)
+		})
+
+		BeforeEach(func() {
+			mockUacGenerator.On("EnableUac", "87654321").Return(nil)
+		})
+
+		It("Sets the Disabled flag to false", func() {
+			Expect(httpRecorder.Code).To(Equal(http.StatusOK))
+		})
+	})
+
+	Describe("GET /uacs/enable/:uac with a non existing uac", func() {
+		var (
+			httpRecorder *httptest.ResponseRecorder
+		)
+
+		JustBeforeEach(func() {
+			httpRecorder = httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/uacs/uac/enable/1234", nil)
+			httpRouter.ServeHTTP(httpRecorder, req)
+		})
+
+		BeforeEach(func() {
+			mockUacGenerator.On("EnableUac", "1234").Return(fmt.Errorf("invalid uac"))
+		})
+
+		It("returns a http 400 error", func() {
+			Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
+			Expect(httpRecorder.Body.String()).To(Equal(`{"error":"invalid uac"}`))
+		})
+	})
+
+	Describe("GET /uacs/disable/:uac with a non existing uac", func() {
+		var (
+			httpRecorder *httptest.ResponseRecorder
+		)
+
+		JustBeforeEach(func() {
+			httpRecorder = httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/uacs/uac/disable/1234", nil)
+			httpRouter.ServeHTTP(httpRecorder, req)
+		})
+
+		BeforeEach(func() {
+			mockUacGenerator.On("DisableUac", "1234").Return(fmt.Errorf("invalid uac"))
+		})
+
+		It("returns a http 400 error", func() {
+			Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
+			Expect(httpRecorder.Body.String()).To(Equal(`{"error":"invalid uac"}`))
+		})
+	})
+
+	Describe("GET /uacs/uac/:instrumentName/disabled with a non existing instrumentName", func() {
+		var (
+			httpRecorder *httptest.ResponseRecorder
+		)
+
+		JustBeforeEach(func() {
+			httpRecorder = httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/uacs/uac/unknownInstrumentName/disabled", nil)
+			httpRouter.ServeHTTP(httpRecorder, req)
+		})
+
+		BeforeEach(func() {
+			mockUacGenerator.On("GetAllUacsDisabled", "unknownInstrumentName").Return(nil, fmt.Errorf("Instrument not found"))
+		})
+
+		It("returns a http 400 error", func() {
+			Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
+			Expect(httpRecorder.Body.String()).To(Equal(`{"error":"Instrument not found"}`))
+		})
+	})
 })

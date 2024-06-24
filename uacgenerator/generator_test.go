@@ -192,7 +192,7 @@ var _ = Describe("NewUac", func() {
 
 		It("Regenerates a new random UAC and saves it to datastore", func() {
 			_, err := uacGenerator.NewUac(instrumentName, caseID, 0)
-            Expect(err).ShouldNot(HaveOccurred())
+			Expect(err).ShouldNot(HaveOccurred())
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 3)
 		})
 	})
@@ -212,7 +212,7 @@ var _ = Describe("NewUac", func() {
 
 		It("Saves the UAC to datastore", func() {
 			_, err := uacGenerator.NewUac(instrumentName, caseID, 0)
-            Expect(err).ShouldNot(HaveOccurred())
+			Expect(err).ShouldNot(HaveOccurred())
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 1)
 		})
 	})
@@ -948,6 +948,254 @@ var _ = Describe("ValiadateUACs", func() {
 
 		It("returns nil", func() {
 			Expect(uacGenerator.ValidateUACs(uacs)).To(BeNil())
+		})
+	})
+})
+
+var _ = Describe("GetDisabledUacs", func() {
+	var (
+		uacGenerator   *uacgenerator.UacGenerator
+		instrumentName = "lolcat"
+		mockDatastore  *mocks.Datastore
+	)
+
+	Context("when there are duplicate disabled uacs with the same case id", func() {
+		BeforeEach(func() {
+			mockDatastore = &mocks.Datastore{}
+
+			uacGenerator = uacgenerator.NewUacGenerator(mockDatastore, "uac")
+
+			mockDatastore.On("GetAll",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Query"),
+				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+			).Once().Return(
+				func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
+					uacInfos := dst.(*[]*uacgenerator.UacInfo)
+					key := uacGenerator.UacKey("foobar")
+					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+						InstrumentName: instrumentName,
+						CaseID:         "12343",
+						UAC:            key,
+						Disabled:       true,
+					})
+					key2 := uacGenerator.UacKey("foobar2")
+					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+						InstrumentName: instrumentName,
+						CaseID:         "12343",
+						UAC:            key2,
+						Disabled:       true,
+					})
+					return []*datastore.Key{key, key2}
+				},
+				func(ctx context.Context, qry *datastore.Query, dst interface{}) error {
+					return nil
+				})
+		})
+
+		It("returns an error", func() {
+			uacs, err := uacGenerator.GetAllUacsDisabled(instrumentName)
+			Expect(uacs).To(BeNil())
+			Expect(err).To(MatchError("Fewer case ids than uacs, must be duplicate case ids"))
+		})
+	})
+
+	Context("when there are no duplicate case ids", func() {
+		BeforeEach(func() {
+			mockDatastore = &mocks.Datastore{}
+
+			uacGenerator = uacgenerator.NewUacGenerator(mockDatastore, "uac")
+
+			mockDatastore.On("GetAll",
+				uacGenerator.Context,
+				mock.AnythingOfTypeArgument("*datastore.Query"),
+				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+			).Once().Return(
+				func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
+					uacInfos := dst.(*[]*uacgenerator.UacInfo)
+					key := uacGenerator.UacKey("foobar")
+					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+						InstrumentName: instrumentName,
+						CaseID:         "12343",
+						UAC:            key,
+						Disabled:       true,
+					})
+					key2 := uacGenerator.UacKey("foobar2")
+					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+						InstrumentName: instrumentName,
+						CaseID:         "56764",
+						UAC:            key2,
+						Disabled:       true,
+					})
+					return []*datastore.Key{key, key2}
+				},
+				func(ctx context.Context, qry *datastore.Query, dst interface{}) error {
+					return nil
+				})
+		})
+
+		It("returns a map of all uacs with info", func() {
+			uacs, err := uacGenerator.GetAllUacsDisabled(instrumentName)
+			Expect(uacs).To(HaveLen(2))
+			Expect(uacs["12343"].InstrumentName).To(Equal(instrumentName))
+			Expect(uacs["12343"].CaseID).To(Equal("12343"))
+			Expect(uacs["12343"].Disabled).To(Equal(true))
+			Expect(uacs["56764"].InstrumentName).To(Equal(instrumentName))
+			Expect(uacs["56764"].CaseID).To(Equal("56764"))
+			Expect(uacs["56764"].Disabled).To(Equal(true))
+			Expect(err).To(BeNil())
+		})
+	})
+})
+
+var _ = Describe("EnableUAC", func() {
+	var (
+		uacGenerator  *uacgenerator.UacGenerator
+		mockDatastore *mocks.Datastore
+		uac           string
+	)
+
+	BeforeEach(func() {
+		mockDatastore = &mocks.Datastore{}
+		uacGenerator = uacgenerator.NewUacGenerator(mockDatastore, "uac")
+
+		mockDatastore.On("Mutate",
+			uacGenerator.Context,
+			mock.AnythingOfTypeArgument("*datastore.Mutation"),
+		).Return(nil, nil)
+	})
+
+	AfterEach(func() {
+		uac = ""
+	})
+
+	Context("and UAC is enabled", func() {
+		BeforeEach(func() {
+			uac = "123456789123"
+		})
+
+		Context("and they have a Disabled attribute of false", func() {
+			BeforeEach(func() {
+				mockDatastore.On("Get",
+					uacGenerator.Context,
+					mock.AnythingOfTypeArgument("*datastore.Key"),
+					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+				).Times(1).Return(func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
+					uacInfo := dst.(*uacgenerator.UacInfo)
+					key := uacGenerator.UacKey("123456789123")
+					*uacInfo = uacgenerator.UacInfo{
+						InstrumentName: "dst2108a",
+						CaseID:         "1234",
+						UAC:            key,
+						Disabled:       false,
+					}
+					return nil
+				})
+			})
+
+			It("enables the UAC", func() {
+				err := uacGenerator.EnableUac(uac)
+				Expect(err).To(BeNil())
+				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 1)
+			})
+		})
+	})
+
+	Context("and the UAC doesn't exist", func() {
+		BeforeEach(func() {
+			uac = "123456789123"
+		})
+
+		Context("and should return an error", func() {
+			BeforeEach(func() {
+				mockDatastore.On("Get",
+					uacGenerator.Context,
+					mock.AnythingOfTypeArgument("*datastore.Key"),
+					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+				).Return(datastore.ErrNoSuchEntity)
+			})
+
+			It("errors and doesn't disable anything", func() {
+				err := uacGenerator.EnableUac(uac)
+				Expect(err).To(MatchError(`datastore: no such entity`))
+				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
+			})
+		})
+	})
+})
+
+var _ = Describe("DisableUAC", func() {
+	var (
+		uacGenerator  *uacgenerator.UacGenerator
+		mockDatastore *mocks.Datastore
+		uac           string
+	)
+
+	BeforeEach(func() {
+		mockDatastore = &mocks.Datastore{}
+		uacGenerator = uacgenerator.NewUacGenerator(mockDatastore, "uac")
+
+		mockDatastore.On("Mutate",
+			uacGenerator.Context,
+			mock.AnythingOfTypeArgument("*datastore.Mutation"),
+		).Return(nil, nil)
+	})
+
+	AfterEach(func() {
+		uac = ""
+	})
+
+	Context("and UAC is disabled", func() {
+		BeforeEach(func() {
+			uac = "123456789123"
+		})
+
+		Context("and they have a Disabled attribute of true", func() {
+			BeforeEach(func() {
+				mockDatastore.On("Get",
+					uacGenerator.Context,
+					mock.AnythingOfTypeArgument("*datastore.Key"),
+					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+				).Times(1).Return(func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
+					uacInfo := dst.(*uacgenerator.UacInfo)
+					key := uacGenerator.UacKey("123456789123")
+					*uacInfo = uacgenerator.UacInfo{
+						InstrumentName: "dst2108a",
+						CaseID:         "1234",
+						UAC:            key,
+						Disabled:       true,
+					}
+					return nil
+				})
+			})
+
+			It("disables the UAC", func() {
+				err := uacGenerator.DisableUac(uac)
+				Expect(err).To(BeNil())
+				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 1)
+			})
+		})
+	})
+
+	Context("and the UAC doesn't exist", func() {
+		BeforeEach(func() {
+			uac = "123456789123"
+		})
+
+		Context("and should return an error", func() {
+			BeforeEach(func() {
+				mockDatastore.On("Get",
+					uacGenerator.Context,
+					mock.AnythingOfTypeArgument("*datastore.Key"),
+					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+				).Return(datastore.ErrNoSuchEntity)
+			})
+
+			It("errors and doesn't disable anything", func() {
+				err := uacGenerator.DisableUac(uac)
+				Expect(err).To(MatchError(`datastore: no such entity`))
+				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
+			})
 		})
 	})
 })
