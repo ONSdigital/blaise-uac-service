@@ -1,8 +1,8 @@
-# Blaise UAC Service
+# Blaise UAC Service ![Bus](.github/bus.png)
 
-Blaise UAC service (BUS) is a service used to generate and validate UACs for blaise web collection. 
+Blaise UAC Service (BUS) is a service used to generate and validate UACs (Unique Access Codes) for Blaise web collection. It is utilised by DQS and/or the BUS-UI.
 
-![bus](./bus.jpeg)
+The service will provide existing UACs if they have already been generated or create new ones if more are requested than currently exist. Each UAC is tied to a specific questionnaire and case ID stored in Datastore. These UACs are used by the CAWI portal to direct respondents to their respective questionnaires.
 
 ## Running the tests 
 
