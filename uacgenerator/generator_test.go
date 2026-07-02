@@ -83,7 +83,7 @@ var _ = Describe("NewUac", func() {
 
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
@@ -108,7 +108,7 @@ var _ = Describe("NewUac", func() {
 
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
@@ -132,7 +132,7 @@ var _ = Describe("NewUac", func() {
 
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
@@ -153,7 +153,7 @@ var _ = Describe("NewUac", func() {
 
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
@@ -182,11 +182,11 @@ var _ = Describe("NewUac", func() {
 
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+				mock.AnythingOfType("*datastore.Mutation"),
 			).Twice().Return(nil, status.Error(codes.AlreadyExists, "Already exists"))
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
@@ -206,7 +206,7 @@ var _ = Describe("NewUac", func() {
 
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
@@ -226,7 +226,7 @@ var _ = Describe("NewUac", func() {
 
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, status.Error(codes.AlreadyExists, "Already exists"))
 		})
 
@@ -265,8 +265,8 @@ var _ = Describe("UacExistsForCase", func() {
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Query"),
-				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*datastore.Query"),
+				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
 			).Return([]*datastore.Key{datastore.IncompleteKey("foo", nil)}, nil)
 		})
 
@@ -286,8 +286,8 @@ var _ = Describe("UacExistsForCase", func() {
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Query"),
-				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*datastore.Query"),
+				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
 			).Return(nil, nil)
 		})
 
@@ -322,13 +322,13 @@ var _ = Describe("Generate", func() {
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Query"),
-				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*datastore.Query"),
+				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
 			).Return(nil, nil)
 
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
@@ -348,21 +348,21 @@ var _ = Describe("Generate", func() {
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Query"),
-				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*datastore.Query"),
+				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
 			).Return(nil, nil)
 
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+				mock.AnythingOfType("*datastore.Mutation"),
 			).Once().Return(nil, nil)
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+				mock.AnythingOfType("*datastore.Mutation"),
 			).Once().Return(nil, fmt.Errorf("Massive mutation explosion"))
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
@@ -379,19 +379,19 @@ var _ = Describe("Generate", func() {
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Query"),
-				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*datastore.Query"),
+				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
 			).Once().Return([]*datastore.Key{datastore.IncompleteKey("foo", nil)}, nil)
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Query"),
-				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*datastore.Query"),
+				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
 			).Return(nil, nil)
 
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
@@ -411,13 +411,13 @@ var _ = Describe("Generate", func() {
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Query"),
-				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*datastore.Query"),
+				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
 			).Return(nil, nil)
 
 			mockDatastore.On("Mutate",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Mutation"),
+				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
@@ -444,8 +444,8 @@ var _ = Describe("GetAllUacs", func() {
 
 		mockDatastore.On("GetAll",
 			uacGenerator.Context,
-			mock.AnythingOfTypeArgument("*datastore.Query"),
-			mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+			mock.AnythingOfType("*datastore.Query"),
+			mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
 		).Once().Return(
 			func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
 				uacInfos := dst.(*[]*uacgenerator.UacInfo)
@@ -494,8 +494,8 @@ var _ = Describe("GetAllUacs", func() {
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Query"),
-				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*datastore.Query"),
+				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
 			).Once().Return(
 				func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
 					uacInfos := dst.(*[]*uacgenerator.UacInfo)
@@ -533,8 +533,8 @@ var _ = Describe("GetAllUacs", func() {
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Query"),
-				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*datastore.Query"),
+				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
 			).Once().Return(
 				func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
 					uacInfos := dst.(*[]*uacgenerator.UacInfo)
@@ -583,7 +583,7 @@ var _ = Describe("GetUacCount", func() {
 
 		mockDatastore.On("Count",
 			uacGenerator.Context,
-			mock.AnythingOfTypeArgument("*datastore.Query"),
+			mock.AnythingOfType("*datastore.Query"),
 		).Return(40, nil)
 	})
 
@@ -608,8 +608,8 @@ var _ = Describe("GetUacInfo", func() {
 
 		mockDatastore.On("Get",
 			uacGenerator.Context,
-			mock.AnythingOfTypeArgument("*datastore.Key"),
-			mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+			mock.AnythingOfType("*datastore.Key"),
+			mock.AnythingOfType("*uacgenerator.UacInfo"),
 		).Once().Return(
 			func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
 				uacInfo := dst.(*uacgenerator.UacInfo)
@@ -644,8 +644,8 @@ var _ = Describe("GetInstruments", func() {
 
 		mockDatastore.On("GetAll",
 			uacGenerator.Context,
-			mock.AnythingOfTypeArgument("*datastore.Query"),
-			mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+			mock.AnythingOfType("*datastore.Query"),
+			mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
 		).Once().Return(
 			func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
 				uacInfos := dst.(*[]*uacgenerator.UacInfo)
@@ -706,7 +706,7 @@ var _ = Describe("ImportUacs", func() {
 
 		mockDatastore.On("Mutate",
 			uacGenerator.Context,
-			mock.AnythingOfTypeArgument("*datastore.Mutation"),
+			mock.AnythingOfType("*datastore.Mutation"),
 		).Return(nil, nil)
 	})
 
@@ -734,8 +734,8 @@ var _ = Describe("ImportUacs", func() {
 
 				mockDatastore.On("Get",
 					uacGenerator.Context,
-					mock.AnythingOfTypeArgument("*datastore.Key"),
-					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*datastore.Key"),
+					mock.AnythingOfType("*uacgenerator.UacInfo"),
 				).Return(datastore.ErrNoSuchEntity)
 			})
 
@@ -767,8 +767,8 @@ var _ = Describe("ImportUacs", func() {
 
 			mockDatastore.On("Get",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Key"),
-				mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*datastore.Key"),
+				mock.AnythingOfType("*uacgenerator.UacInfo"),
 			).Return(func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
 				uacInfo := dst.(*uacgenerator.UacInfo)
 				key := uacGenerator.UacKey("any")
@@ -798,13 +798,13 @@ var _ = Describe("ImportUacs", func() {
 			BeforeEach(func() {
 				mockDatastore.On("Get",
 					uacGenerator.Context,
-					mock.AnythingOfTypeArgument("*datastore.Key"),
-					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*datastore.Key"),
+					mock.AnythingOfType("*uacgenerator.UacInfo"),
 				).Times(2).Return(datastore.ErrNoSuchEntity)
 				mockDatastore.On("Get",
 					uacGenerator.Context,
-					mock.AnythingOfTypeArgument("*datastore.Key"),
-					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*datastore.Key"),
+					mock.AnythingOfType("*uacgenerator.UacInfo"),
 				).Return(func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
 					uacInfo := dst.(*uacgenerator.UacInfo)
 					key := uacGenerator.UacKey("123556789987")
@@ -830,7 +830,7 @@ var _ = Describe("ImportUacs", func() {
 				mockDatastore.On("Get",
 					uacGenerator.Context,
 					uacGenerator.UacKey("123556789987"),
-					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*uacgenerator.UacInfo"),
 				).Return(func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
 					uacInfo := dst.(*uacgenerator.UacInfo)
 					key := uacGenerator.UacKey("123556789987")
@@ -843,8 +843,8 @@ var _ = Describe("ImportUacs", func() {
 				})
 				mockDatastore.On("Get",
 					uacGenerator.Context,
-					mock.AnythingOfTypeArgument("*datastore.Key"),
-					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*datastore.Key"),
+					mock.AnythingOfType("*uacgenerator.UacInfo"),
 				).Return(datastore.ErrNoSuchEntity)
 			})
 
@@ -967,8 +967,8 @@ var _ = Describe("GetDisabledUacs", func() {
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Query"),
-				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*datastore.Query"),
+				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
 			).Once().Return(
 				func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
 					uacInfos := dst.(*[]*uacgenerator.UacInfo)
@@ -1008,8 +1008,8 @@ var _ = Describe("GetDisabledUacs", func() {
 
 			mockDatastore.On("GetAll",
 				uacGenerator.Context,
-				mock.AnythingOfTypeArgument("*datastore.Query"),
-				mock.AnythingOfTypeArgument("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*datastore.Query"),
+				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
 			).Once().Return(
 				func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
 					uacInfos := dst.(*[]*uacgenerator.UacInfo)
@@ -1061,7 +1061,7 @@ var _ = Describe("EnableUAC", func() {
 
 		mockDatastore.On("Mutate",
 			uacGenerator.Context,
-			mock.AnythingOfTypeArgument("*datastore.Mutation"),
+			mock.AnythingOfType("*datastore.Mutation"),
 		).Return(nil, nil)
 	})
 
@@ -1078,8 +1078,8 @@ var _ = Describe("EnableUAC", func() {
 			BeforeEach(func() {
 				mockDatastore.On("Get",
 					uacGenerator.Context,
-					mock.AnythingOfTypeArgument("*datastore.Key"),
-					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*datastore.Key"),
+					mock.AnythingOfType("*uacgenerator.UacInfo"),
 				).Times(1).Return(func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
 					uacInfo := dst.(*uacgenerator.UacInfo)
 					key := uacGenerator.UacKey("123456789123")
@@ -1110,8 +1110,8 @@ var _ = Describe("EnableUAC", func() {
 			BeforeEach(func() {
 				mockDatastore.On("Get",
 					uacGenerator.Context,
-					mock.AnythingOfTypeArgument("*datastore.Key"),
-					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*datastore.Key"),
+					mock.AnythingOfType("*uacgenerator.UacInfo"),
 				).Return(datastore.ErrNoSuchEntity)
 			})
 
@@ -1137,7 +1137,7 @@ var _ = Describe("DisableUAC", func() {
 
 		mockDatastore.On("Mutate",
 			uacGenerator.Context,
-			mock.AnythingOfTypeArgument("*datastore.Mutation"),
+			mock.AnythingOfType("*datastore.Mutation"),
 		).Return(nil, nil)
 	})
 
@@ -1154,8 +1154,8 @@ var _ = Describe("DisableUAC", func() {
 			BeforeEach(func() {
 				mockDatastore.On("Get",
 					uacGenerator.Context,
-					mock.AnythingOfTypeArgument("*datastore.Key"),
-					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*datastore.Key"),
+					mock.AnythingOfType("*uacgenerator.UacInfo"),
 				).Times(1).Return(func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
 					uacInfo := dst.(*uacgenerator.UacInfo)
 					key := uacGenerator.UacKey("123456789123")
@@ -1186,8 +1186,8 @@ var _ = Describe("DisableUAC", func() {
 			BeforeEach(func() {
 				mockDatastore.On("Get",
 					uacGenerator.Context,
-					mock.AnythingOfTypeArgument("*datastore.Key"),
-					mock.AnythingOfTypeArgument("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*datastore.Key"),
+					mock.AnythingOfType("*uacgenerator.UacInfo"),
 				).Return(datastore.ErrNoSuchEntity)
 			})
 
