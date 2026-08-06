@@ -100,8 +100,8 @@ func NewUacGenerator(datastoreClient Datastore, uacKind string) *UacGenerator {
 func (uacGenerator *UacGenerator) GenerateUac12() string {
 	var uac string
 	for i := 0; i < 3; i++ {
-		uacSegmant := uacGenerator.Randomizer.Int63n(9999 - 1000)
-		uac = fmt.Sprintf("%s%d", uac, uacSegmant+1000)
+		uacSegment := uacGenerator.Randomizer.Int63n(9999 - 1000)
+		uac = fmt.Sprintf("%s%d", uac, uacSegment+1000)
 	}
 	return uac
 }
@@ -143,7 +143,6 @@ func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt 
 }
 
 func (uacGenerator *UacGenerator) AddUacToDatastore(uac string, instrumentName, caseID string) error {
-	// Cannot workout how the hell to mock/ test this :(
 	newUACMutation := datastore.NewInsert(uacGenerator.UacKey(uac), &UacInfo{
 		InstrumentName: strings.ToLower(instrumentName),
 		CaseID:         strings.ToLower(caseID),
@@ -528,7 +527,7 @@ func (uacGenerator *UacGenerator) adminDeleteChunk(uacKeyChunk []*datastore.Key,
 func (uacGenerator *UacGenerator) instrumentCaseQuery(instrumentName, caseID string) *datastore.Query {
 	query := datastore.NewQuery(uacGenerator.UacKind)
 	query = query.FilterField("instrument_name", "=", strings.ToLower(instrumentName))
-	return query.FilterField(strings.ToLower("case_id"), "=", strings.ToLower(caseID))
+	return query.FilterField("case_id", "=", strings.ToLower(caseID))
 }
 
 func (uacGenerator *UacGenerator) instrumentQuery(instrumentName string) *datastore.Query {
@@ -540,7 +539,7 @@ func (uacGenerator *UacGenerator) instrumentUacDisabledQuery(instrumentName stri
 	query := datastore.NewQuery(uacGenerator.UacKind)
 
 	query = query.FilterField("instrument_name", "=", strings.ToLower(instrumentName))
-	return query.FilterField(strings.ToLower("disabled"), "=", true)
+	return query.FilterField("disabled", "=", true)
 }
 
 func (uacGenerator *UacGenerator) instrumentNamesQuery() *datastore.Query {

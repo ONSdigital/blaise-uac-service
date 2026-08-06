@@ -8,8 +8,7 @@ import (
 	"cloud.google.com/go/datastore"
 	"github.com/ONSDigital/blaise-uac-service/uacgenerator"
 	"github.com/ONSDigital/blaise-uac-service/uacgenerator/mocks"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc/codes"
@@ -34,9 +33,9 @@ var _ = Describe("GenerateUac12", func() {
 
 			var startIndex = 0
 			for i := 0; i < 3; i++ {
-				uacSegmant, _ := strconv.Atoi(uac[startIndex : startIndex+4])
-				Expect(uacSegmant).To(BeNumerically(">=", 1000))
-				Expect(uacSegmant).To(BeNumerically("<=", 9999))
+				uacSegment, _ := strconv.Atoi(uac[startIndex : startIndex+4])
+				Expect(uacSegment).To(BeNumerically(">=", 1000))
+				Expect(uacSegment).To(BeNumerically("<=", 9999))
 				startIndex = startIndex + 4
 			}
 		}
@@ -236,6 +235,41 @@ var _ = Describe("NewUac", func() {
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 10)
 			Expect(err).To(MatchError("Could not generate a unique UAC in 10 attempts"))
 		})
+	})
+})
+
+var _ = Describe("AddUacToDatastore", func() {
+	var (
+		uacGenerator  *uacgenerator.UacGenerator
+		mockDatastore *mocks.Datastore
+	)
+
+	BeforeEach(func() {
+		mockDatastore = &mocks.Datastore{}
+		uacGenerator = uacgenerator.NewUacGenerator(mockDatastore, "uac")
+	})
+
+	It("writes a new UAC mutation to datastore", func() {
+		mockDatastore.On("Mutate",
+			uacGenerator.Context,
+			mock.AnythingOfType("*datastore.Mutation"),
+		).Return(nil, nil)
+
+		err := uacGenerator.AddUacToDatastore("123412341234", "INSTRUMENT", "CASEID")
+
+		Expect(err).To(BeNil())
+		mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 1)
+	})
+
+	It("returns datastore errors", func() {
+		mockDatastore.On("Mutate",
+			uacGenerator.Context,
+			mock.AnythingOfType("*datastore.Mutation"),
+		).Return(nil, fmt.Errorf("mutation failed"))
+
+		err := uacGenerator.AddUacToDatastore("123412341234", "INSTRUMENT", "CASEID")
+
+		Expect(err).To(MatchError("mutation failed"))
 	})
 })
 

@@ -24,7 +24,6 @@ type UACRequest struct {
 type UACGenerateRequest struct {
 	InstrumentName string   `json:"instrument_name"`
 	CaseIDs        []string `json:"case_ids"`
-	Disabled       bool     `json:"disabled" datastore:"disabled"`
 }
 
 type UacController struct {
@@ -44,9 +43,8 @@ func (uacController *UacController) AddRoutes(httpRouter *gin.Engine) {
 		uacsGroup.DELETE("/admin/instrument/:instrumentName", uacController.AdminDeleteEndpoint)
 		uacsGroup.GET("/instruments", uacController.ListInstrumentsEndpoint)
 		uacsGroup.POST("/import", uacController.ImportEndpoint)
-
-		uacsGroup.GET("/uac/disable/:uac", uacController.UACDisableEndpoint)
-		uacsGroup.GET("/uac/enable/:uac", uacController.UACEnableEndpoint)
+		uacsGroup.PATCH("/uac/disable/:uac", uacController.UACDisableEndpoint)
+		uacsGroup.PATCH("/uac/enable/:uac", uacController.UACEnableEndpoint)
 		uacsGroup.GET("/uac/:instrumentName/disabled", uacController.UACGetAllDisabledEndpoint)
 
 	}

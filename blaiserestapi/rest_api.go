@@ -65,9 +65,9 @@ func (blaiseRestApi *BlaiseRestApi) GetInstrumentModes(instrumentName string) (I
 	if err != nil {
 		return nil, err
 	}
-	var instrument_modes InstrumentModes
-	err = json.Unmarshal(body, &instrument_modes)
-	return instrument_modes, err
+	var instrumentModes InstrumentModes
+	err = json.Unmarshal(body, &instrumentModes)
+	return instrumentModes, err
 }
 
 func (blaiseRestApi *BlaiseRestApi) caseIdsUrl(instrumentName string) string {

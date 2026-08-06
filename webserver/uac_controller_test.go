@@ -12,7 +12,7 @@ import (
 	"github.com/ONSDigital/blaise-uac-service/uacgenerator"
 	"github.com/ONSDigital/blaise-uac-service/webserver"
 	"github.com/gin-gonic/gin"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
 
@@ -339,7 +339,7 @@ var _ = Describe("UAC Controller", func() {
 			})
 		})
 
-		Context("Returns bad request if no body is invalid JSON", func() {
+		Context("Returns not found if the UAC does not exist", func() {
 			BeforeEach(func() {
 				requestBody = bytes.NewReader([]byte(`{"uac":"98765432101"}`))
 				mockUacGenerator.On("GetUacInfo", "98765432101").Return(nil, datastore.ErrNoSuchEntity)
@@ -355,13 +355,17 @@ var _ = Describe("UAC Controller", func() {
 	Describe("POST /import", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
+			requestBody  string
 		)
 
 		JustBeforeEach(func() {
-			requestBody := `["123456789123","123456789145","123556789987"]`
 			httpRecorder = httptest.NewRecorder()
 			req, _ := http.NewRequest("POST", "/uacs/import", bytes.NewBufferString(requestBody))
 			httpRouter.ServeHTTP(httpRecorder, req)
+		})
+
+		BeforeEach(func() {
+			requestBody = `["123456789123","123456789145","123556789987"]`
 		})
 
 		Context("and importing the UACs is successful", func() {
@@ -396,6 +400,51 @@ var _ = Describe("UAC Controller", func() {
 				It("errors and doesn't import anything", func() {
 					Expect(httpRecorder.Code).To(Equal(http.StatusInternalServerError))
 				})
+			})
+		})
+
+		Context("and the request body is malformed JSON", func() {
+			BeforeEach(func() {
+				requestBody = `["123456789123",` 
+			})
+
+			It("returns an internal server error before import is attempted", func() {
+				Expect(httpRecorder.Code).To(Equal(http.StatusInternalServerError))
+				mockUacGenerator.AssertNotCalled(GinkgoT(), "ImportUACs", mock.Anything)
+			})
+		})
+	})
+
+	Describe("DELETE /uacs/admin/instrument/:instrumentName", func() {
+		var (
+			httpRecorder *httptest.ResponseRecorder
+		)
+
+		JustBeforeEach(func() {
+			httpRecorder = httptest.NewRecorder()
+			req, _ := http.NewRequest("DELETE", "/uacs/admin/instrument/test123", nil)
+			httpRouter.ServeHTTP(httpRecorder, req)
+		})
+
+		Context("when deletion succeeds", func() {
+			BeforeEach(func() {
+				mockUacGenerator.On("AdminDelete", "test123").Return(nil)
+			})
+
+			It("returns no content", func() {
+				Expect(httpRecorder.Code).To(Equal(http.StatusNoContent))
+				Expect(httpRecorder.Body.String()).To(Equal(""))
+			})
+		})
+
+		Context("when deletion fails", func() {
+			BeforeEach(func() {
+				mockUacGenerator.On("AdminDelete", "test123").Return(fmt.Errorf("delete failed"))
+			})
+
+			It("returns an internal server error", func() {
+				Expect(httpRecorder.Code).To(Equal(http.StatusInternalServerError))
+				Expect(httpRecorder.Body.String()).To(Equal("null"))
 			})
 		})
 	})
@@ -434,14 +483,14 @@ var _ = Describe("UAC Controller", func() {
 		})
 	})
 
-	Describe("GET /uacs/disable/:uac", func() {
+	Describe("PATCH /uacs/disable/:uac", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 		)
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("GET", "/uacs/uac/disable/123456789", nil)
+			req, _ := http.NewRequest("PATCH", "/uacs/uac/disable/123456789", nil)
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
@@ -454,14 +503,14 @@ var _ = Describe("UAC Controller", func() {
 		})
 	})
 
-	Describe("GET /uacs/enable/:uac", func() {
+	Describe("PATCH /uacs/enable/:uac", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 		)
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("GET", "/uacs/uac/enable/87654321", nil)
+			req, _ := http.NewRequest("PATCH", "/uacs/uac/enable/87654321", nil)
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
@@ -474,14 +523,14 @@ var _ = Describe("UAC Controller", func() {
 		})
 	})
 
-	Describe("GET /uacs/enable/:uac with a non existing uac", func() {
+	Describe("PATCH /uacs/enable/:uac with a non existing uac", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 		)
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("GET", "/uacs/uac/enable/1234", nil)
+			req, _ := http.NewRequest("PATCH", "/uacs/uac/enable/1234", nil)
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
@@ -495,14 +544,14 @@ var _ = Describe("UAC Controller", func() {
 		})
 	})
 
-	Describe("GET /uacs/disable/:uac with a non existing uac", func() {
+	Describe("PATCH /uacs/disable/:uac with a non existing uac", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 		)
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("GET", "/uacs/uac/disable/1234", nil)
+			req, _ := http.NewRequest("PATCH", "/uacs/uac/disable/1234", nil)
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
