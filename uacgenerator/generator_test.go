@@ -58,8 +58,6 @@ var _ = Describe("GenerateUac16", func() {
 			uac := uacGenerator.GenerateUac16()
 
 			Expect(uac).To(MatchRegexp(fmt.Sprintf(`^[%s]{16}$`, uacgenerator.APPROVEDCHARACTERS)))
-
-			//Ensure does not contain unapproved characters
 			Expect(uac).ToNot(MatchRegexp(fmt.Sprintf(`^.*[%s]{1}.*$`, unapprovedCharacters)))
 		}
 	})
@@ -487,13 +485,13 @@ var _ = Describe("GetAllUacs", func() {
 				*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
 					InstrumentName: instrumentName,
 					CaseID:         "12343",
-					UAC:            key,
+					Uac:            key,
 				})
 				key2 := uacGenerator.UacKey("foobar2")
 				*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
 					InstrumentName: instrumentName,
 					CaseID:         "56764",
-					UAC:            key2,
+					Uac:            key2,
 				})
 				return []*datastore.Key{key, key2}
 			},
@@ -513,7 +511,7 @@ var _ = Describe("GetAllUacs", func() {
 	})
 })
 
-var _ = Describe("GetAllUacs", func() {
+var _ = Describe("GetAllUacsByCaseID", func() {
 	var (
 		uacGenerator   *uacgenerator.UacGenerator
 		instrumentName = "lolcat"
@@ -537,13 +535,13 @@ var _ = Describe("GetAllUacs", func() {
 					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "12343",
-						UAC:            key,
+						Uac:            key,
 					})
 					key2 := uacGenerator.UacKey("foobar2")
 					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "12343",
-						UAC:            key2,
+						Uac:            key2,
 					})
 					return []*datastore.Key{key, key2}
 				},
@@ -576,13 +574,13 @@ var _ = Describe("GetAllUacs", func() {
 					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "12343",
-						UAC:            key,
+						Uac:            key,
 					})
 					key2 := uacGenerator.UacKey("foobar2")
 					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "56764",
-						UAC:            key2,
+						Uac:            key2,
 					})
 					return []*datastore.Key{key, key2}
 				},
@@ -651,13 +649,13 @@ var _ = Describe("GetUacInfo", func() {
 				*uacInfo = uacgenerator.UacInfo{
 					InstrumentName: instrumentName,
 					CaseID:         "12343",
-					UAC:            key,
+					Uac:            key,
 				}
 				return nil
 			})
 	})
 
-	It("Returns the uac info for a valid uac key", func() {
+	It("Returns UacInfo for a valid UAC", func() {
 		uacInfo, err := uacGenerator.GetUacInfo("lemons")
 		Expect(uacInfo.InstrumentName).To(Equal(instrumentName))
 		Expect(uacInfo.CaseID).To(Equal("12343"))
@@ -703,13 +701,13 @@ var _ = Describe("GetInstruments", func() {
 	})
 })
 
-var _ = DescribeTable("ChunkUAC",
+var _ = DescribeTable("ChunkUac",
 	func(uac string, expected uacgenerator.UacChunks) {
-		Expect(*uacgenerator.ChunkUAC(uac)).To(Equal(expected))
+		Expect(*uacgenerator.ChunkUac(uac)).To(Equal(expected))
 	},
-	Entry("123456781234", "123456781234", uacgenerator.UacChunks{UAC1: "1234", UAC2: "5678", UAC3: "1234"}),
-	Entry("111122223333", "111122223333", uacgenerator.UacChunks{UAC1: "1111", UAC2: "2222", UAC3: "3333"}),
-	Entry("11112222333344444", "1111222233334444", uacgenerator.UacChunks{UAC1: "1111", UAC2: "2222", UAC3: "3333", UAC4: "4444"}),
+	Entry("123456781234", "123456781234", uacgenerator.UacChunks{Uac1: "1234", Uac2: "5678", Uac3: "1234"}),
+	Entry("111122223333", "111122223333", uacgenerator.UacChunks{Uac1: "1111", Uac2: "2222", Uac3: "3333"}),
+	Entry("11112222333344444", "1111222233334444", uacgenerator.UacChunks{Uac1: "1111", Uac2: "2222", Uac3: "3333", Uac4: "4444"}),
 )
 
 var _ = Describe("Uacs", func() {
@@ -721,8 +719,8 @@ var _ = Describe("Uacs", func() {
 
 		It("Adds UacChunks to the UacInfo", func() {
 			uacs.BuildUacChunks()
-			Expect(*uacs["111122223333"].UacChunks).To(Equal(uacgenerator.UacChunks{UAC1: "1111", UAC2: "2222", UAC3: "3333"}))
-			Expect(*uacs["123456781234"].UacChunks).To(Equal(uacgenerator.UacChunks{UAC1: "1234", UAC2: "5678", UAC3: "1234"}))
+			Expect(*uacs["111122223333"].UacChunks).To(Equal(uacgenerator.UacChunks{Uac1: "1111", Uac2: "2222", Uac3: "3333"}))
+			Expect(*uacs["123456781234"].UacChunks).To(Equal(uacgenerator.UacChunks{Uac1: "1234", Uac2: "5678", Uac3: "1234"}))
 		})
 	})
 })
@@ -754,7 +752,7 @@ var _ = Describe("ImportUacs", func() {
 		})
 
 		It("imports nothing and returns 0 imported with no error", func() {
-			updateCount, err := uacGenerator.ImportUACs(uacs)
+			updateCount, err := uacGenerator.ImportUacs(uacs)
 			Expect(updateCount).To(Equal(0))
 			Expect(err).To(BeNil())
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
@@ -774,7 +772,7 @@ var _ = Describe("ImportUacs", func() {
 			})
 
 			It("imports all of the UACs", func() {
-				updateCount, err := uacGenerator.ImportUACs(uacs)
+				updateCount, err := uacGenerator.ImportUacs(uacs)
 				Expect(updateCount).To(Equal(3))
 				Expect(err).To(BeNil())
 				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 3)
@@ -787,7 +785,7 @@ var _ = Describe("ImportUacs", func() {
 			})
 
 			It("errors and doesn't import anything", func() {
-				updateCount, err := uacGenerator.ImportUACs(uacs)
+				updateCount, err := uacGenerator.ImportUacs(uacs)
 				Expect(updateCount).To(Equal(0))
 				Expect(err).To(MatchError(`Cannot import UACs because some were invalid: ["a2sad", "2131asda91298"]`))
 				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
@@ -809,14 +807,14 @@ var _ = Describe("ImportUacs", func() {
 				*uacInfo = uacgenerator.UacInfo{
 					InstrumentName: "unknown",
 					CaseID:         "unknown",
-					UAC:            key,
+					Uac:            key,
 				}
 				return nil
 			})
 		})
 
 		It("imports nothing and returns 0 imported with no error", func() {
-			updateCount, err := uacGenerator.ImportUACs(uacs)
+			updateCount, err := uacGenerator.ImportUacs(uacs)
 			Expect(updateCount).To(Equal(0))
 			Expect(err).To(BeNil())
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
@@ -845,14 +843,14 @@ var _ = Describe("ImportUacs", func() {
 					*uacInfo = uacgenerator.UacInfo{
 						InstrumentName: "unknown",
 						CaseID:         "unknown",
-						UAC:            key,
+						Uac:            key,
 					}
 					return nil
 				})
 			})
 
 			It("imports all of the UACs, skipping those that already exist", func() {
-				updateCount, err := uacGenerator.ImportUACs(uacs)
+				updateCount, err := uacGenerator.ImportUacs(uacs)
 				Expect(updateCount).To(Equal(2))
 				Expect(err).To(BeNil())
 				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 2)
@@ -871,7 +869,7 @@ var _ = Describe("ImportUacs", func() {
 					*uacInfo = uacgenerator.UacInfo{
 						InstrumentName: "dst2108a",
 						CaseID:         "1234",
-						UAC:            key,
+						Uac:            key,
 					}
 					return nil
 				})
@@ -883,7 +881,7 @@ var _ = Describe("ImportUacs", func() {
 			})
 
 			It("errors and doesn't import anything", func() {
-				updateCount, err := uacGenerator.ImportUACs(uacs)
+				updateCount, err := uacGenerator.ImportUacs(uacs)
 				Expect(updateCount).To(Equal(0))
 				Expect(err).To(MatchError(`Cannot import UACs because some were already in use by questionnaires: ["123556789987"]`))
 				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
@@ -892,11 +890,11 @@ var _ = Describe("ImportUacs", func() {
 	})
 })
 
-var _ = Describe("ValidateUAC12", func() {
+var _ = Describe("ValidateUac12", func() {
 	var uacGenerator = &uacgenerator.UacGenerator{}
 	DescribeTable("Validations",
 		func(uac string, expected bool) {
-			Expect(uacGenerator.ValidateUAC12(uac)).To(Equal(expected))
+			Expect(uacGenerator.ValidateUac12(uac)).To(Equal(expected))
 		},
 		Entry("short", "21314", false),
 		Entry("long", "21314632512345123", false),
@@ -906,11 +904,11 @@ var _ = Describe("ValidateUAC12", func() {
 	)
 })
 
-var _ = Describe("ValidateUAC16", func() {
+var _ = Describe("ValidateUac16", func() {
 	var uacGenerator = &uacgenerator.UacGenerator{}
 	DescribeTable("Validations",
 		func(uac string, expected bool) {
-			Expect(uacGenerator.ValidateUAC16(uac)).To(Equal(expected))
+			Expect(uacGenerator.ValidateUac16(uac)).To(Equal(expected))
 		},
 		Entry("short", "21314", false),
 		Entry("long", "21314632512345123", false),
@@ -923,7 +921,7 @@ var _ = Describe("ValidateUAC16", func() {
 	)
 })
 
-var _ = Describe("ValidateUAC", func() {
+var _ = Describe("ValidateUac", func() {
 	var (
 		uacGenerator = &uacgenerator.UacGenerator{}
 		uac12        = "123412341234"
@@ -936,13 +934,13 @@ var _ = Describe("ValidateUAC", func() {
 
 		Context("when a 16 character UAC is provided", func() {
 			It("returns false", func() {
-				Expect(uacGenerator.ValidateUAC(uac16)).To(BeFalse())
+				Expect(uacGenerator.ValidateUac(uac16)).To(BeFalse())
 			})
 		})
 
 		Context("when a 12 digit UAC is provided", func() {
 			It("returns true", func() {
-				Expect(uacGenerator.ValidateUAC(uac12)).To(BeTrue())
+				Expect(uacGenerator.ValidateUac(uac12)).To(BeTrue())
 			})
 		})
 	})
@@ -954,26 +952,26 @@ var _ = Describe("ValidateUAC", func() {
 
 		Context("when a 16 character UAC is provided", func() {
 			It("returns true", func() {
-				Expect(uacGenerator.ValidateUAC(uac16)).To(BeTrue())
+				Expect(uacGenerator.ValidateUac(uac16)).To(BeTrue())
 			})
 		})
 
 		Context("when a 12 digit UAC is provided", func() {
 			It("returns false", func() {
-				Expect(uacGenerator.ValidateUAC(uac12)).To(BeFalse())
+				Expect(uacGenerator.ValidateUac(uac12)).To(BeFalse())
 			})
 		})
 	})
 })
 
-var _ = Describe("ValiadateUACs", func() {
+var _ = Describe("ValidateUacs", func() {
 	var uacGenerator = &uacgenerator.UacGenerator{}
 	Context("when some uacs are invalid", func() {
 		var uacs = []string{"2313", "41512", "123412341234"}
 
-		It("returms an ImportError with invalid UACs", func() {
-			err := uacGenerator.ValidateUACs(uacs)
-			Expect(err.(*uacgenerator.ImportError).InvalidUACs).To(Equal([]string{"2313", "41512"}))
+		It("returns an ImportError with invalid UACs", func() {
+			err := uacGenerator.ValidateUacs(uacs)
+			Expect(err.(*uacgenerator.ImportError).InvalidUacs).To(Equal([]string{"2313", "41512"}))
 		})
 	})
 
@@ -981,7 +979,7 @@ var _ = Describe("ValiadateUACs", func() {
 		var uacs = []string{"123412341234", "456745674567"}
 
 		It("returns nil", func() {
-			Expect(uacGenerator.ValidateUACs(uacs)).To(BeNil())
+			Expect(uacGenerator.ValidateUacs(uacs)).To(BeNil())
 		})
 	})
 })
@@ -1010,14 +1008,14 @@ var _ = Describe("GetDisabledUacs", func() {
 					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "12343",
-						UAC:            key,
+						Uac:            key,
 						Disabled:       true,
 					})
 					key2 := uacGenerator.UacKey("foobar2")
 					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "12343",
-						UAC:            key2,
+						Uac:            key2,
 						Disabled:       true,
 					})
 					return []*datastore.Key{key, key2}
@@ -1051,14 +1049,14 @@ var _ = Describe("GetDisabledUacs", func() {
 					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "12343",
-						UAC:            key,
+						Uac:            key,
 						Disabled:       true,
 					})
 					key2 := uacGenerator.UacKey("foobar2")
 					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "56764",
-						UAC:            key2,
+						Uac:            key2,
 						Disabled:       true,
 					})
 					return []*datastore.Key{key, key2}
@@ -1082,7 +1080,7 @@ var _ = Describe("GetDisabledUacs", func() {
 	})
 })
 
-var _ = Describe("EnableUAC", func() {
+var _ = Describe("EnableUac", func() {
 	var (
 		uacGenerator  *uacgenerator.UacGenerator
 		mockDatastore *mocks.Datastore
@@ -1120,7 +1118,7 @@ var _ = Describe("EnableUAC", func() {
 					*uacInfo = uacgenerator.UacInfo{
 						InstrumentName: "dst2108a",
 						CaseID:         "1234",
-						UAC:            key,
+						Uac:            key,
 						Disabled:       false,
 					}
 					return nil
@@ -1158,7 +1156,7 @@ var _ = Describe("EnableUAC", func() {
 	})
 })
 
-var _ = Describe("DisableUAC", func() {
+var _ = Describe("DisableUac", func() {
 	var (
 		uacGenerator  *uacgenerator.UacGenerator
 		mockDatastore *mocks.Datastore
@@ -1196,7 +1194,7 @@ var _ = Describe("DisableUAC", func() {
 					*uacInfo = uacgenerator.UacInfo{
 						InstrumentName: "dst2108a",
 						CaseID:         "1234",
-						UAC:            key,
+						Uac:            key,
 						Disabled:       true,
 					}
 					return nil

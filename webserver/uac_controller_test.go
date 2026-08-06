@@ -121,7 +121,7 @@ var _ = Describe("UAC Controller", func() {
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
-		Context("When the instrument has UAC codes", func() {
+		Context("When the instrument has UACs", func() {
 			BeforeEach(func() {
 				mockUacGenerator.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{
 					"125634896985": {
@@ -141,7 +141,7 @@ var _ = Describe("UAC Controller", func() {
 			})
 		})
 
-		Context("When the instrument has UAC Info held against it", func() {
+		Context("When the instrument has UacInfo held against it", func() {
 			BeforeEach(func() {
 				mockUacGenerator.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{}, nil)
 			})
@@ -169,12 +169,12 @@ var _ = Describe("UAC Controller", func() {
 				"12452": {
 					InstrumentName: "test123",
 					CaseID:         "12452",
-					FullUAC:        "125634896985",
+					FullUac:        "125634896985",
 				},
 				"65858": {
 					InstrumentName: "test123",
 					CaseID:         "65858",
-					FullUAC:        "78945612309",
+					FullUac:        "78945612309",
 				},
 			}, nil)
 		})
@@ -302,7 +302,7 @@ var _ = Describe("UAC Controller", func() {
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
-		Context("A valid UAC returns UACInfo for that code", func() {
+		Context("A valid UAC returns UacInfo for that code", func() {
 			BeforeEach(func() {
 				requestBody = bytes.NewReader([]byte(`{"uac":"98765432101"}`))
 				mockUacGenerator.On("GetUacInfo", "98765432101").Return(&uacgenerator.UacInfo{
@@ -311,7 +311,7 @@ var _ = Describe("UAC Controller", func() {
 				}, nil)
 			})
 
-			It("Gets UAC Info for a valid UAC Code", func() {
+			It("Gets UacInfo for a valid UAC", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusOK))
 				Expect(httpRecorder.Body.String()).To(Equal(`{"instrument_name":"test123","case_id":"12452","disabled":false}`))
 			})
@@ -370,7 +370,7 @@ var _ = Describe("UAC Controller", func() {
 
 		Context("and importing the UACs is successful", func() {
 			BeforeEach(func() {
-				mockUacGenerator.On("ImportUACs", mock.AnythingOfType("[]string")).Return(3, nil)
+				mockUacGenerator.On("ImportUacs", mock.AnythingOfType("[]string")).Return(3, nil)
 			})
 
 			It("imports all of the UACs", func() {
@@ -382,8 +382,8 @@ var _ = Describe("UAC Controller", func() {
 		Context("and importing the UACs errors", func() {
 			Context("and the error is an import error", func() {
 				BeforeEach(func() {
-					mockUacGenerator.On("ImportUACs", mock.AnythingOfType("[]string")).
-						Return(0, &uacgenerator.ImportError{InvalidUACs: []string{"foobar"}})
+					mockUacGenerator.On("ImportUacs", mock.AnythingOfType("[]string")).
+						Return(0, &uacgenerator.ImportError{InvalidUacs: []string{"foobar"}})
 				})
 
 				It("errors and doesn't import anything", func() {
@@ -394,7 +394,7 @@ var _ = Describe("UAC Controller", func() {
 
 			Context("and the error is any other error", func() {
 				BeforeEach(func() {
-					mockUacGenerator.On("ImportUACs", mock.AnythingOfType("[]string")).Return(0, fmt.Errorf("invalid uac"))
+					mockUacGenerator.On("ImportUacs", mock.AnythingOfType("[]string")).Return(0, fmt.Errorf("invalid uac"))
 				})
 
 				It("errors and doesn't import anything", func() {
@@ -410,7 +410,7 @@ var _ = Describe("UAC Controller", func() {
 
 			It("returns an internal server error before import is attempted", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusInternalServerError))
-				mockUacGenerator.AssertNotCalled(GinkgoT(), "ImportUACs", mock.Anything)
+				mockUacGenerator.AssertNotCalled(GinkgoT(), "ImportUacs", mock.Anything)
 			})
 		})
 	})
@@ -465,13 +465,13 @@ var _ = Describe("UAC Controller", func() {
 				"12452": {
 					InstrumentName: "test123",
 					CaseID:         "12452",
-					FullUAC:        "125634896985",
+					FullUac:        "125634896985",
 					Disabled:       true,
 				},
 				"65858": {
 					InstrumentName: "test123",
 					CaseID:         "65858",
-					FullUAC:        "78945612309",
+					FullUac:        "78945612309",
 					Disabled:       true,
 				},
 			}, nil)

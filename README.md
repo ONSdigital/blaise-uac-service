@@ -10,7 +10,7 @@ The API exposes UAC management endpoints under the `/uacs` route group, plus hea
 
 ### UAC Endpoints
 
-- `UACInstrumentGenerateEndpoint`
+- `UacInstrumentGenerateEndpoint`
 
 ```http
 POST /uacs/instrument/:instrumentName
@@ -18,7 +18,7 @@ POST /uacs/instrument/:instrumentName
 
 Generates UACs for an instrument's CAWI cases (fetched from Blaise), then returns all UACs for that instrument.
 
-- `UACGetAllEndpoint`
+- `UacGetAllEndpoint`
 
 ```http
 GET /uacs/instrument/:instrumentName
@@ -26,7 +26,7 @@ GET /uacs/instrument/:instrumentName
 
 Returns all UACs for the specified instrument.
 
-- `UACGetAllByCaseIDEndpoint`
+- `UacGetAllByCaseIDEndpoint`
 
 ```http
 GET /uacs/instrument/:instrumentName/bycaseid
@@ -34,7 +34,7 @@ GET /uacs/instrument/:instrumentName/bycaseid
 
 Returns all UACs for the specified instrument, ordered/grouped by case ID.
 
-- `UACCountEndpoint`
+- `UacCountEndpoint`
 
 ```http
 GET /uacs/instrument/:instrumentName/count
@@ -42,7 +42,7 @@ GET /uacs/instrument/:instrumentName/count
 
 Returns the total number of UACs for the specified instrument.
 
-- `UACGenerateEndpoint`
+- `UacGenerateEndpoint`
 
 ```http
 POST /uacs/generate
@@ -82,7 +82,7 @@ POST /uacs/import
 
 Imports an array of UAC strings and returns the number imported.
 
-- `UACDisableEndpoint`
+- `UacDisableEndpoint`
 
 ```http
 PATCH /uacs/uac/disable/:uac
@@ -90,7 +90,7 @@ PATCH /uacs/uac/disable/:uac
 
 Disables the specified UAC.
 
-- `UACEnableEndpoint`
+- `UacEnableEndpoint`
 
 ```http
 PATCH /uacs/uac/enable/:uac
@@ -98,7 +98,7 @@ PATCH /uacs/uac/enable/:uac
 
 Enables the specified UAC.
 
-- `UACGetAllDisabledEndpoint`
+- `UacGetAllDisabledEndpoint`
 
 ```http
 GET /uacs/uac/:instrumentName/disabled

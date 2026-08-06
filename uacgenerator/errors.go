@@ -6,25 +6,25 @@ import (
 )
 
 type ImportError struct {
-	InvalidUACs    []string
-	InstrumentUACs []string
+	InvalidUacs    []string
+	InstrumentUacs []string
 }
 
 func (importError *ImportError) Error() string {
 	var err string
-	if len(importError.InvalidUACs) > 0 {
-		err = fmt.Sprintf("Cannot import UACs because some were invalid: [%s]", formatSlice(importError.InvalidUACs))
+	if len(importError.InvalidUacs) > 0 {
+		err = fmt.Sprintf("Cannot import UACs because some were invalid: [%s]", formatSlice(importError.InvalidUacs))
 	}
-	if len(importError.InstrumentUACs) > 0 {
+	if len(importError.InstrumentUacs) > 0 {
 		if err == "" {
 			err = fmt.Sprintf(
 				"Cannot import UACs because some were already in use by questionnaires: [%s]",
-				formatSlice(importError.InstrumentUACs),
+				formatSlice(importError.InstrumentUacs),
 			)
 		} else {
 			err = fmt.Sprintf(
 				"%s and some UACs were already in use by questionnaires: [%s]",
-				err, formatSlice(importError.InstrumentUACs),
+				err, formatSlice(importError.InstrumentUacs),
 			)
 
 		}
@@ -33,7 +33,7 @@ func (importError *ImportError) Error() string {
 }
 
 func (importError *ImportError) HasErrors() bool {
-	return len(importError.InvalidUACs) > 0 || len(importError.InstrumentUACs) > 0
+	return len(importError.InvalidUacs) > 0 || len(importError.InstrumentUacs) > 0
 }
 
 func formatSlice(input []string) string {

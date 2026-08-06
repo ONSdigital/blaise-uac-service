@@ -17,11 +17,11 @@ type ResponseError struct {
 	Error string `json:"error"`
 }
 
-type UACRequest struct {
-	UAC string `json:"uac"`
+type UacRequest struct {
+	Uac string `json:"uac"`
 }
 
-type UACGenerateRequest struct {
+type UacGenerateRequest struct {
 	InstrumentName string   `json:"instrument_name"`
 	CaseIDs        []string `json:"case_ids"`
 }
@@ -34,23 +34,23 @@ type UacController struct {
 func (uacController *UacController) AddRoutes(httpRouter *gin.Engine) {
 	uacsGroup := httpRouter.Group("/uacs")
 	{
-		uacsGroup.POST("/instrument/:instrumentName", uacController.UACInstrumentGenerateEndpoint)
-		uacsGroup.GET("/instrument/:instrumentName", uacController.UACGetAllEndpoint)
-		uacsGroup.GET("/instrument/:instrumentName/bycaseid", uacController.UACGetAllByCaseIDEndpoint)
-		uacsGroup.GET("/instrument/:instrumentName/count", uacController.UACCountEndpoint)
-		uacsGroup.POST("/generate", uacController.UACGenerateEndpoint)
+		uacsGroup.POST("/instrument/:instrumentName", uacController.UacInstrumentGenerateEndpoint)
+		uacsGroup.GET("/instrument/:instrumentName", uacController.UacGetAllEndpoint)
+		uacsGroup.GET("/instrument/:instrumentName/bycaseid", uacController.UacGetAllByCaseIDEndpoint)
+		uacsGroup.GET("/instrument/:instrumentName/count", uacController.UacCountEndpoint)
+		uacsGroup.POST("/generate", uacController.UacGenerateEndpoint)
 		uacsGroup.POST("/uac", uacController.GetUacInfoEndpoint)
 		uacsGroup.DELETE("/admin/instrument/:instrumentName", uacController.AdminDeleteEndpoint)
 		uacsGroup.GET("/instruments", uacController.ListInstrumentsEndpoint)
 		uacsGroup.POST("/import", uacController.ImportEndpoint)
-		uacsGroup.PATCH("/uac/disable/:uac", uacController.UACDisableEndpoint)
-		uacsGroup.PATCH("/uac/enable/:uac", uacController.UACEnableEndpoint)
-		uacsGroup.GET("/uac/:instrumentName/disabled", uacController.UACGetAllDisabledEndpoint)
+		uacsGroup.PATCH("/uac/disable/:uac", uacController.UacDisableEndpoint)
+		uacsGroup.PATCH("/uac/enable/:uac", uacController.UacEnableEndpoint)
+		uacsGroup.GET("/uac/:instrumentName/disabled", uacController.UacGetAllDisabledEndpoint)
 
 	}
 }
 
-func (uacController *UacController) UACInstrumentGenerateEndpoint(context *gin.Context) {
+func (uacController *UacController) UacInstrumentGenerateEndpoint(context *gin.Context) {
 	instrumentName := context.Param("instrumentName")
 	instrumentModes, err := uacController.BlaiseRestApi.GetInstrumentModes(instrumentName)
 	if err != nil {
@@ -80,14 +80,14 @@ func (uacController *UacController) UACInstrumentGenerateEndpoint(context *gin.C
 	context.JSON(http.StatusOK, uacs)
 }
 
-func (uacController *UacController) UACGenerateEndpoint(context *gin.Context) {
+func (uacController *UacController) UacGenerateEndpoint(context *gin.Context) {
 	body, err := io.ReadAll(context.Request.Body)
 	if err != nil {
 		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	defer context.Request.Body.Close()
-	var uacGenerateRequest UACGenerateRequest
+	var uacGenerateRequest UacGenerateRequest
 	err = json.Unmarshal(body, &uacGenerateRequest)
 	if err != nil {
 		_ = context.AbortWithError(http.StatusInternalServerError, err)
@@ -111,7 +111,7 @@ func (uacController *UacController) UACGenerateEndpoint(context *gin.Context) {
 	context.JSON(http.StatusOK, uacs)
 }
 
-func (uacController *UacController) UACGetAllEndpoint(context *gin.Context) {
+func (uacController *UacController) UacGetAllEndpoint(context *gin.Context) {
 	instrumentName := context.Param("instrumentName")
 
 	uacs, err := uacController.UacGenerator.GetAllUacs(instrumentName)
@@ -123,7 +123,7 @@ func (uacController *UacController) UACGetAllEndpoint(context *gin.Context) {
 	context.JSON(http.StatusOK, uacs)
 }
 
-func (uacController *UacController) UACGetAllByCaseIDEndpoint(context *gin.Context) {
+func (uacController *UacController) UacGetAllByCaseIDEndpoint(context *gin.Context) {
 	instrumentName := context.Param("instrumentName")
 
 	uacs, err := uacController.UacGenerator.GetAllUacsByCaseID(instrumentName)
@@ -144,7 +144,7 @@ func (uacController *UacController) ListInstrumentsEndpoint(context *gin.Context
 	context.JSON(http.StatusOK, instrumentNames)
 }
 
-func (uacController *UacController) UACCountEndpoint(context *gin.Context) {
+func (uacController *UacController) UacCountEndpoint(context *gin.Context) {
 	instrumentName := context.Param("instrumentName")
 
 	uacCount, err := uacController.UacGenerator.GetUacCount(instrumentName)
@@ -163,7 +163,7 @@ func (uacController *UacController) GetUacInfoEndpoint(context *gin.Context) {
 		return
 	}
 
-	uacInfo, err := uacController.UacGenerator.GetUacInfo(uac.UAC)
+	uacInfo, err := uacController.UacGenerator.GetUacInfo(uac.Uac)
 	if err != nil {
 		if err == datastore.ErrNoSuchEntity {
 			context.JSON(http.StatusNotFound, nil)
@@ -200,7 +200,7 @@ func (uacController *UacController) ImportEndpoint(context *gin.Context) {
 		_ = context.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	importCount, err := uacController.UacGenerator.ImportUACs(uacs)
+	importCount, err := uacController.UacGenerator.ImportUacs(uacs)
 	if err != nil {
 		if _, ok := err.(*uacgenerator.ImportError); ok {
 			context.AbortWithStatusJSON(http.StatusBadRequest, ResponseError{Error: err.Error()})
@@ -224,22 +224,22 @@ func (uacController *UacController) blaiseRestApiError(context *gin.Context, err
 	_ = context.AbortWithError(http.StatusInternalServerError, err)
 }
 
-func (uacController *UacController) getUacRequest(context *gin.Context) (UACRequest, error) {
+func (uacController *UacController) getUacRequest(context *gin.Context) (UacRequest, error) {
 	body, err := io.ReadAll(context.Request.Body)
 	if err != nil {
-		return UACRequest{}, err
+		return UacRequest{}, err
 	}
 	defer context.Request.Body.Close()
 
-	var uac UACRequest
+	var uac UacRequest
 	err = json.Unmarshal(body, &uac)
 	if err != nil {
-		return UACRequest{}, err
+		return UacRequest{}, err
 	}
 	return uac, nil
 }
 
-func (uacController *UacController) UACDisableEndpoint(context *gin.Context) {
+func (uacController *UacController) UacDisableEndpoint(context *gin.Context) {
 	uac := context.Param("uac")
 
 	err := uacController.UacGenerator.DisableUac(uac)
@@ -250,7 +250,7 @@ func (uacController *UacController) UACDisableEndpoint(context *gin.Context) {
 	context.JSON(http.StatusOK, nil)
 }
 
-func (uacController *UacController) UACEnableEndpoint(context *gin.Context) {
+func (uacController *UacController) UacEnableEndpoint(context *gin.Context) {
 	uac := context.Param("uac")
 
 	err := uacController.UacGenerator.EnableUac(uac)
@@ -261,7 +261,7 @@ func (uacController *UacController) UACEnableEndpoint(context *gin.Context) {
 	context.JSON(http.StatusOK, nil)
 }
 
-func (uacController *UacController) UACGetAllDisabledEndpoint(context *gin.Context) {
+func (uacController *UacController) UacGetAllDisabledEndpoint(context *gin.Context) {
 	instrumentName := context.Param("instrumentName")
 
 	uacs, err := uacController.UacGenerator.GetAllUacsDisabled(instrumentName)
