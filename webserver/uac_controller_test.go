@@ -24,8 +24,8 @@ var _ = Describe("UAC Controller", func() {
 	var (
 		httpRouter        *gin.Engine
 		mockBlaiseRestApi = &mockblaiserestapi.BlaiseRestApiInterface{}
-		mockUacGenerator  = &mockuacgenerator.UacGeneratorInterface{}
-		uacController     = &webserver.UacController{UacGenerator: mockUacGenerator, BlaiseRestApi: mockBlaiseRestApi}
+		mockUacService  = &mockuacgenerator.UacServiceInterface{}
+		uacController     = &webserver.UacController{UacService: mockUacService, BlaiseRestApi: mockBlaiseRestApi}
 	)
 
 	BeforeEach(func() {
@@ -35,8 +35,8 @@ var _ = Describe("UAC Controller", func() {
 
 	AfterEach(func() {
 		mockBlaiseRestApi = &mockblaiserestapi.BlaiseRestApiInterface{}
-		mockUacGenerator = &mockuacgenerator.UacGeneratorInterface{}
-		uacController.UacGenerator = mockUacGenerator
+		mockUacService = &mockuacgenerator.UacServiceInterface{}
+		uacController.UacService = mockUacService
 		uacController.BlaiseRestApi = mockBlaiseRestApi
 	})
 
@@ -77,13 +77,13 @@ var _ = Describe("UAC Controller", func() {
 			BeforeEach(func() {
 				mockBlaiseRestApi.On("GetInstrumentModes", "test123").Return(blaiserestapi.InstrumentModes{"CAWI"}, nil)
 
-				mockUacGenerator.On("Generate", "test123", []string{"12345"}).Return(nil)
+				mockUacService.On("Generate", "test123", []string{"12345"}).Return(nil)
 			})
 
 			Context("when the instrument does exist when getting case ids", func() {
 				BeforeEach(func() {
 					mockBlaiseRestApi.On("GetCaseIds", "test123").Return([]string{"12345"}, nil)
-					mockUacGenerator.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{
+					mockUacService.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{
 						"125634896985": {
 							InstrumentName: "test123",
 							CaseID:         "12452",
@@ -123,7 +123,7 @@ var _ = Describe("UAC Controller", func() {
 
 		Context("When the instrument has UACs", func() {
 			BeforeEach(func() {
-				mockUacGenerator.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{
+				mockUacService.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{
 					"125634896985": {
 						InstrumentName: "test123",
 						CaseID:         "12452",
@@ -143,7 +143,7 @@ var _ = Describe("UAC Controller", func() {
 
 		Context("When the instrument has UacInfo held against it", func() {
 			BeforeEach(func() {
-				mockUacGenerator.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{}, nil)
+				mockUacService.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{}, nil)
 			})
 
 			It("Returns an empty list with status code of Ok", func() {
@@ -165,7 +165,7 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacGenerator.On("GetAllUacsByCaseID", "test123").Return(uacgenerator.Uacs{
+			mockUacService.On("GetAllUacsByCaseID", "test123").Return(uacgenerator.Uacs{
 				"12452": {
 					InstrumentName: "test123",
 					CaseID:         "12452",
@@ -197,7 +197,7 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacGenerator.On("GetUacCount", "test123").Return(20, nil)
+			mockUacService.On("GetUacCount", "test123").Return(20, nil)
 		})
 
 		It("Returns a number of uacs with a status Ok", func() {
@@ -218,7 +218,7 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacGenerator.On("GetInstruments").Return([]string{"foo", "bar"}, nil)
+			mockUacService.On("GetInstruments").Return([]string{"foo", "bar"}, nil)
 		})
 
 		It("Returns instrument_names with a status Ok", func() {
@@ -241,8 +241,8 @@ var _ = Describe("UAC Controller", func() {
 			})
 
 			BeforeEach(func() {
-				mockUacGenerator.On("Generate", "test123", []string{"123", "456", "789"}).Return(nil)
-				mockUacGenerator.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{
+				mockUacService.On("Generate", "test123", []string{"123", "456", "789"}).Return(nil)
+				mockUacService.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{
 					"125634896985": {
 						InstrumentName: "test123",
 						CaseID:         "12452",
@@ -265,8 +265,8 @@ var _ = Describe("UAC Controller", func() {
 			})
 
 			BeforeEach(func() {
-				mockUacGenerator.On("Generate", "test123", []string(nil)).Return(nil)
-				mockUacGenerator.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{}, nil)
+				mockUacService.On("Generate", "test123", []string(nil)).Return(nil)
+				mockUacService.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{}, nil)
 			})
 
 			It("generated nothing, and returns as such", func() {
@@ -305,7 +305,7 @@ var _ = Describe("UAC Controller", func() {
 		Context("A valid UAC returns UacInfo for that code", func() {
 			BeforeEach(func() {
 				requestBody = bytes.NewReader([]byte(`{"uac":"98765432101"}`))
-				mockUacGenerator.On("GetUacInfo", "98765432101").Return(&uacgenerator.UacInfo{
+				mockUacService.On("GetUacInfo", "98765432101").Return(&uacgenerator.UacInfo{
 					InstrumentName: "test123",
 					CaseID:         "12452",
 				}, nil)
@@ -342,7 +342,7 @@ var _ = Describe("UAC Controller", func() {
 		Context("Returns not found if the UAC does not exist", func() {
 			BeforeEach(func() {
 				requestBody = bytes.NewReader([]byte(`{"uac":"98765432101"}`))
-				mockUacGenerator.On("GetUacInfo", "98765432101").Return(nil, datastore.ErrNoSuchEntity)
+				mockUacService.On("GetUacInfo", "98765432101").Return(nil, datastore.ErrNoSuchEntity)
 			})
 
 			It("Returns an empty body and a not found status", func() {
@@ -370,7 +370,7 @@ var _ = Describe("UAC Controller", func() {
 
 		Context("and importing the UACs is successful", func() {
 			BeforeEach(func() {
-				mockUacGenerator.On("ImportUacs", mock.AnythingOfType("[]string")).Return(3, nil)
+				mockUacService.On("ImportUacs", mock.AnythingOfType("[]string")).Return(3, nil)
 			})
 
 			It("imports all of the UACs", func() {
@@ -382,7 +382,7 @@ var _ = Describe("UAC Controller", func() {
 		Context("and importing the UACs errors", func() {
 			Context("and the error is an import error", func() {
 				BeforeEach(func() {
-					mockUacGenerator.On("ImportUacs", mock.AnythingOfType("[]string")).
+					mockUacService.On("ImportUacs", mock.AnythingOfType("[]string")).
 						Return(0, &uacgenerator.ImportError{InvalidUacs: []string{"foobar"}})
 				})
 
@@ -394,7 +394,7 @@ var _ = Describe("UAC Controller", func() {
 
 			Context("and the error is any other error", func() {
 				BeforeEach(func() {
-					mockUacGenerator.On("ImportUacs", mock.AnythingOfType("[]string")).Return(0, fmt.Errorf("invalid uac"))
+					mockUacService.On("ImportUacs", mock.AnythingOfType("[]string")).Return(0, fmt.Errorf("invalid uac"))
 				})
 
 				It("errors and doesn't import anything", func() {
@@ -410,7 +410,7 @@ var _ = Describe("UAC Controller", func() {
 
 			It("returns an internal server error before import is attempted", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusInternalServerError))
-				mockUacGenerator.AssertNotCalled(GinkgoT(), "ImportUacs", mock.Anything)
+				mockUacService.AssertNotCalled(GinkgoT(), "ImportUacs", mock.Anything)
 			})
 		})
 	})
@@ -428,7 +428,7 @@ var _ = Describe("UAC Controller", func() {
 
 		Context("when deletion succeeds", func() {
 			BeforeEach(func() {
-				mockUacGenerator.On("AdminDelete", "test123").Return(nil)
+				mockUacService.On("AdminDelete", "test123").Return(nil)
 			})
 
 			It("returns no content", func() {
@@ -439,7 +439,7 @@ var _ = Describe("UAC Controller", func() {
 
 		Context("when deletion fails", func() {
 			BeforeEach(func() {
-				mockUacGenerator.On("AdminDelete", "test123").Return(fmt.Errorf("delete failed"))
+				mockUacService.On("AdminDelete", "test123").Return(fmt.Errorf("delete failed"))
 			})
 
 			It("returns an internal server error", func() {
@@ -461,7 +461,7 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacGenerator.On("GetAllUacsDisabled", "test123").Return(uacgenerator.Uacs{
+			mockUacService.On("GetAllUacsDisabled", "test123").Return(uacgenerator.Uacs{
 				"12452": {
 					InstrumentName: "test123",
 					CaseID:         "12452",
@@ -495,7 +495,7 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacGenerator.On("DisableUac", "123456789").Return(nil)
+			mockUacService.On("DisableUac", "123456789").Return(nil)
 		})
 
 		It("Sets the Disabled flag to true", func() {
@@ -515,7 +515,7 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacGenerator.On("EnableUac", "87654321").Return(nil)
+			mockUacService.On("EnableUac", "87654321").Return(nil)
 		})
 
 		It("Sets the Disabled flag to false", func() {
@@ -535,7 +535,7 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacGenerator.On("EnableUac", "1234").Return(fmt.Errorf("invalid uac"))
+			mockUacService.On("EnableUac", "1234").Return(fmt.Errorf("invalid uac"))
 		})
 
 		It("returns a http 400 error", func() {
@@ -556,7 +556,7 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacGenerator.On("DisableUac", "1234").Return(fmt.Errorf("invalid uac"))
+			mockUacService.On("DisableUac", "1234").Return(fmt.Errorf("invalid uac"))
 		})
 
 		It("returns a http 400 error", func() {
@@ -577,7 +577,7 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacGenerator.On("GetAllUacsDisabled", "unknownInstrumentName").Return(nil, fmt.Errorf("Instrument not found"))
+			mockUacService.On("GetAllUacsDisabled", "unknownInstrumentName").Return(nil, fmt.Errorf("Instrument not found"))
 		})
 
 		It("returns a http 400 error", func() {

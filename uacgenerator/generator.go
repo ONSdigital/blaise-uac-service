@@ -24,8 +24,8 @@ const (
 
 // Generate mocks by running "go generate ./..."
 //
-//go:generate mockery --name UacGeneratorInterface
-type UacGeneratorInterface interface {
+//go:generate mockery --name UacServiceInterface
+type UacServiceInterface interface {
 	Generate(string, []string) error
 	GetAllUacs(string) (Uacs, error)
 	GetAllUacsByCaseID(string) (Uacs, error)
@@ -58,7 +58,7 @@ type UacChunks struct {
 	Uac4 string `json:"uac4,omitempty"`
 }
 
-type UacGenerator struct {
+type UacService struct {
 	UacKind         string
 	DatastoreClient Datastore
 	Context         context.Context
@@ -88,8 +88,8 @@ func (uacs Uacs) BuildUacChunks() {
 	}
 }
 
-func NewUacGenerator(datastoreClient Datastore, uacKind string) *UacGenerator {
-	return &UacGenerator{
+func NewUacService(datastoreClient Datastore, uacKind string) *UacService {
+	return &UacService{
 		UacKind:         uacKind,
 		Context:         context.Background(),
 		Randomizer:      rand.New(cryptoSource{}),
@@ -97,24 +97,24 @@ func NewUacGenerator(datastoreClient Datastore, uacKind string) *UacGenerator {
 	}
 }
 
-func (uacGenerator *UacGenerator) GenerateUac12() string {
+func (uacService *UacService) GenerateUac12() string {
 	var uac string
 	for i := 0; i < 3; i++ {
-		uacSegment := uacGenerator.Randomizer.Int63n(9999 - 1000)
+		uacSegment := uacService.Randomizer.Int63n(9999 - 1000)
 		uac = fmt.Sprintf("%s%d", uac, uacSegment+1000)
 	}
 	return uac
 }
 
-func (uacGenerator *UacGenerator) GenerateUac16() string {
+func (uacService *UacService) GenerateUac16() string {
 	b := make([]byte, 16)
 	for i := range b {
-		b[i] = APPROVEDCHARACTERS[uacGenerator.Randomizer.Intn(len(APPROVEDCHARACTERS))]
+		b[i] = APPROVEDCHARACTERS[uacService.Randomizer.Intn(len(APPROVEDCHARACTERS))]
 	}
 	return string(b)
 }
 
-func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt int) (string, error) {
+func (uacService *UacService) NewUac(instrumentName, caseID string, attempt int) (string, error) {
 	if caseID == "" {
 		return "", fmt.Errorf("Cannot generate UACs for blank caseIDs")
 	}
@@ -123,46 +123,46 @@ func (uacGenerator *UacGenerator) NewUac(instrumentName, caseID string, attempt 
 	}
 
 	var uac string
-	switch uacGenerator.UacKind {
+	switch uacService.UacKind {
 	case "uac":
-		uac = uacGenerator.GenerateUac12()
+		uac = uacService.GenerateUac12()
 	case "uac16":
-		uac = uacGenerator.GenerateUac16()
+		uac = uacService.GenerateUac16()
 	default:
 		return "", fmt.Errorf("Cannot generate UACs for invalid UacKind")
 	}
 
-	err := uacGenerator.AddUacToDatastore(uac, instrumentName, caseID)
+	err := uacService.AddUacToDatastore(uac, instrumentName, caseID)
 	if err != nil {
 		if alreadyExistsError(err) {
-			return uacGenerator.NewUac(instrumentName, caseID, attempt+1)
+			return uacService.NewUac(instrumentName, caseID, attempt+1)
 		}
 		return "", err
 	}
 	return uac, nil
 }
 
-func (uacGenerator *UacGenerator) AddUacToDatastore(uac string, instrumentName, caseID string) error {
-	newUacMutation := datastore.NewInsert(uacGenerator.UacKey(uac), &UacInfo{
+func (uacService *UacService) AddUacToDatastore(uac string, instrumentName, caseID string) error {
+	newUacMutation := datastore.NewInsert(uacService.UacKey(uac), &UacInfo{
 		InstrumentName: strings.ToLower(instrumentName),
 		CaseID:         strings.ToLower(caseID),
 	})
-	_, err := uacGenerator.DatastoreClient.Mutate(uacGenerator.Context, newUacMutation)
+	_, err := uacService.DatastoreClient.Mutate(uacService.Context, newUacMutation)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (uacGenerator *UacGenerator) UacKey(key string) *datastore.Key {
-	return datastore.NameKey(uacGenerator.UacKind, key, nil)
+func (uacService *UacService) UacKey(key string) *datastore.Key {
+	return datastore.NameKey(uacService.UacKind, key, nil)
 }
 
-func (uacGenerator *UacGenerator) UacExistsForCase(instrumentName, caseID string) (bool, error) {
+func (uacService *UacService) UacExistsForCase(instrumentName, caseID string) (bool, error) {
 	var existingUacs []*UacInfo
-	existingUacKeys, err := uacGenerator.DatastoreClient.GetAll(
-		uacGenerator.Context,
-		uacGenerator.instrumentCaseQuery(instrumentName, caseID),
+	existingUacKeys, err := uacService.DatastoreClient.GetAll(
+		uacService.Context,
+		uacService.instrumentCaseQuery(instrumentName, caseID),
 		&existingUacs,
 	)
 	if err != nil {
@@ -174,21 +174,21 @@ func (uacGenerator *UacGenerator) UacExistsForCase(instrumentName, caseID string
 	return false, nil
 }
 
-func (uacGenerator *UacGenerator) GenerateUniqueUac(instrumentName, caseID string) error {
-	exists, err := uacGenerator.UacExistsForCase(instrumentName, caseID)
+func (uacService *UacService) GenerateUniqueUac(instrumentName, caseID string) error {
+	exists, err := uacService.UacExistsForCase(instrumentName, caseID)
 	if err != nil {
-		uacGenerator.mu.Lock()
-		uacGenerator.GenerateError[instrumentName] = err
-		uacGenerator.mu.Unlock()
+		uacService.mu.Lock()
+		uacService.GenerateError[instrumentName] = err
+		uacService.mu.Unlock()
 		log.Println(err)
 		return err
 	}
 	if !exists {
-		_, err := uacGenerator.NewUac(instrumentName, caseID, 0)
+		_, err := uacService.NewUac(instrumentName, caseID, 0)
 		if err != nil {
-			uacGenerator.mu.Lock()
-			uacGenerator.GenerateError[instrumentName] = err
-			uacGenerator.mu.Unlock()
+			uacService.mu.Lock()
+			uacService.GenerateError[instrumentName] = err
+			uacService.mu.Unlock()
 			log.Println(err)
 			return err
 		}
@@ -196,37 +196,37 @@ func (uacGenerator *UacGenerator) GenerateUniqueUac(instrumentName, caseID strin
 	return nil
 }
 
-func (uacGenerator *UacGenerator) Generate(instrumentName string, caseIDs []string) error {
+func (uacService *UacService) Generate(instrumentName string, caseIDs []string) error {
 	if len(caseIDs) == 0 {
 		return nil
 	}
-	if uacGenerator.GenerateError == nil {
-		uacGenerator.GenerateError = make(map[string]error)
+	if uacService.GenerateError == nil {
+		uacService.GenerateError = make(map[string]error)
 	}
 	concurrent := goccm.New(MAXCONCURRENT)
 	for _, caseID := range caseIDs {
 		concurrent.Wait()
 		go func(caseID string) {
 			defer concurrent.Done()
-			err := uacGenerator.GenerateUniqueUac(instrumentName, caseID)
+			err := uacService.GenerateUniqueUac(instrumentName, caseID)
 			if err != nil {
-				uacGenerator.mu.Lock()
-				uacGenerator.GenerateError[instrumentName] = err
-				uacGenerator.mu.Unlock()
+				uacService.mu.Lock()
+				uacService.GenerateError[instrumentName] = err
+				uacService.mu.Unlock()
 			}
 		}(caseID)
 	}
 	concurrent.WaitAllDone()
-	err := uacGenerator.GenerateError[instrumentName]
-	uacGenerator.mu.Lock()
-	uacGenerator.GenerateError[instrumentName] = nil
-	uacGenerator.mu.Unlock()
+	err := uacService.GenerateError[instrumentName]
+	uacService.mu.Lock()
+	uacService.GenerateError[instrumentName] = nil
+	uacService.mu.Unlock()
 	return err
 }
 
-func (uacGenerator *UacGenerator) GetAllUacs(instrumentName string) (Uacs, error) {
+func (uacService *UacService) GetAllUacs(instrumentName string) (Uacs, error) {
 	var uacInfos []*UacInfo
-	_, err := uacGenerator.DatastoreClient.GetAll(uacGenerator.Context, uacGenerator.instrumentQuery(instrumentName), &uacInfos)
+	_, err := uacService.DatastoreClient.GetAll(uacService.Context, uacService.instrumentQuery(instrumentName), &uacInfos)
 	if err != nil {
 		return nil, err
 	}
@@ -237,9 +237,9 @@ func (uacGenerator *UacGenerator) GetAllUacs(instrumentName string) (Uacs, error
 	return uacs, nil
 }
 
-func (uacGenerator *UacGenerator) GetAllUacsByCaseID(instrumentName string) (Uacs, error) {
+func (uacService *UacService) GetAllUacsByCaseID(instrumentName string) (Uacs, error) {
 	var uacInfos []*UacInfo
-	_, err := uacGenerator.DatastoreClient.GetAll(uacGenerator.Context, uacGenerator.instrumentQuery(instrumentName), &uacInfos)
+	_, err := uacService.DatastoreClient.GetAll(uacService.Context, uacService.instrumentQuery(instrumentName), &uacInfos)
 	if err != nil {
 		return nil, err
 	}
@@ -254,9 +254,9 @@ func (uacGenerator *UacGenerator) GetAllUacsByCaseID(instrumentName string) (Uac
 	return uacs, nil
 }
 
-func (uacGenerator *UacGenerator) GetAllUacsDisabled(instrumentName string) (Uacs, error) {
+func (uacService *UacService) GetAllUacsDisabled(instrumentName string) (Uacs, error) {
 	var uacInfos []*UacInfo
-	_, err := uacGenerator.DatastoreClient.GetAll(uacGenerator.Context, uacGenerator.instrumentUacDisabledQuery(instrumentName), &uacInfos)
+	_, err := uacService.DatastoreClient.GetAll(uacService.Context, uacService.instrumentUacDisabledQuery(instrumentName), &uacInfos)
 	if err != nil {
 		return nil, err
 	}
@@ -271,61 +271,61 @@ func (uacGenerator *UacGenerator) GetAllUacsDisabled(instrumentName string) (Uac
 	return uacs, nil
 }
 
-func (uacGenerator *UacGenerator) DisableUac(uac string) error {
+func (uacService *UacService) DisableUac(uac string) error {
 	uacInfo := &UacInfo{}
-	err := uacGenerator.DatastoreClient.Get(uacGenerator.Context, uacGenerator.UacKey(uac), uacInfo)
+	err := uacService.DatastoreClient.Get(uacService.Context, uacService.UacKey(uac), uacInfo)
 	if err != nil {
 		return err
 	}
-	newUacMutation := datastore.NewUpdate(uacGenerator.UacKey(uac), &UacInfo{
+	newUacMutation := datastore.NewUpdate(uacService.UacKey(uac), &UacInfo{
 		InstrumentName: strings.ToLower(uacInfo.InstrumentName),
 		CaseID:         strings.ToLower(uacInfo.CaseID),
 		Disabled:       true,
 	})
-	_, err = uacGenerator.DatastoreClient.Mutate(uacGenerator.Context, newUacMutation)
+	_, err = uacService.DatastoreClient.Mutate(uacService.Context, newUacMutation)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (uacGenerator *UacGenerator) EnableUac(uac string) error {
+func (uacService *UacService) EnableUac(uac string) error {
 	uacInfo := &UacInfo{}
-	err := uacGenerator.DatastoreClient.Get(uacGenerator.Context, uacGenerator.UacKey(uac), uacInfo)
+	err := uacService.DatastoreClient.Get(uacService.Context, uacService.UacKey(uac), uacInfo)
 	if err != nil {
 		return err
 	}
-	newUacMutation := datastore.NewUpdate(uacGenerator.UacKey(uac), &UacInfo{
+	newUacMutation := datastore.NewUpdate(uacService.UacKey(uac), &UacInfo{
 		InstrumentName: strings.ToLower(uacInfo.InstrumentName),
 		CaseID:         strings.ToLower(uacInfo.CaseID),
 		Disabled:       false,
 	})
-	_, err = uacGenerator.DatastoreClient.Mutate(uacGenerator.Context, newUacMutation)
+	_, err = uacService.DatastoreClient.Mutate(uacService.Context, newUacMutation)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (uacGenerator *UacGenerator) GetUacCount(instrumentName string) (int, error) {
-	return uacGenerator.DatastoreClient.Count(uacGenerator.Context, uacGenerator.instrumentQuery(instrumentName))
+func (uacService *UacService) GetUacCount(instrumentName string) (int, error) {
+	return uacService.DatastoreClient.Count(uacService.Context, uacService.instrumentQuery(instrumentName))
 }
 
-func (uacGenerator *UacGenerator) GetUacInfo(uac string) (*UacInfo, error) {
+func (uacService *UacService) GetUacInfo(uac string) (*UacInfo, error) {
 	uacInfo := &UacInfo{}
-	err := uacGenerator.DatastoreClient.Get(uacGenerator.Context, uacGenerator.UacKey(uac), uacInfo)
+	err := uacService.DatastoreClient.Get(uacService.Context, uacService.UacKey(uac), uacInfo)
 	if err != nil {
 		return nil, err
 	}
 	return uacInfo, nil
 }
 
-func (uacGenerator *UacGenerator) GetInstruments() ([]string, error) {
+func (uacService *UacService) GetInstruments() ([]string, error) {
 	var (
 		uacInfos        []*UacInfo
 		instrumentNames []string
 	)
-	_, err := uacGenerator.DatastoreClient.GetAll(uacGenerator.Context, uacGenerator.instrumentNamesQuery(), &uacInfos)
+	_, err := uacService.DatastoreClient.GetAll(uacService.Context, uacService.instrumentNamesQuery(), &uacInfos)
 	if err != nil {
 		return nil, err
 	}
@@ -335,18 +335,18 @@ func (uacGenerator *UacGenerator) GetInstruments() ([]string, error) {
 	return instrumentNames, nil
 }
 
-func (uacGenerator *UacGenerator) ImportUacs(uacs []string) (int, error) {
-	if err := uacGenerator.ValidateUacs(uacs); err != nil {
+func (uacService *UacService) ImportUacs(uacs []string) (int, error) {
+	if err := uacService.ValidateUacs(uacs); err != nil {
 		return 0, err
 	}
-	uacsToImport, err := uacGenerator.getUacsToImport(uacs)
+	uacsToImport, err := uacService.getUacsToImport(uacs)
 	if err != nil {
 		return 0, err
 	}
-	return uacGenerator.importUacs(uacsToImport)
+	return uacService.importUacs(uacsToImport)
 }
 
-func (uacGenerator *UacGenerator) ValidateUac12(uac string) bool {
+func (uacService *UacService) ValidateUac12(uac string) bool {
 	if len(uac) != 12 {
 		return false
 	}
@@ -364,22 +364,22 @@ func (uacGenerator *UacGenerator) ValidateUac12(uac string) bool {
 	return true
 }
 
-func (uacGenerator *UacGenerator) ValidateUac16(uac string) bool {
+func (uacService *UacService) ValidateUac16(uac string) bool {
 	uac16Regex := regexp.MustCompile(fmt.Sprintf(`^[%s]{16}$`, APPROVEDCHARACTERS))
 	return uac16Regex.MatchString(uac)
 }
 
-func (uacGenerator *UacGenerator) ValidateUac(uac string) bool {
-	if uacGenerator.UacKind == "uac16" {
-		return uacGenerator.ValidateUac16(uac)
+func (uacService *UacService) ValidateUac(uac string) bool {
+	if uacService.UacKind == "uac16" {
+		return uacService.ValidateUac16(uac)
 	}
-	return uacGenerator.ValidateUac12(uac)
+	return uacService.ValidateUac12(uac)
 }
 
-func (uacGenerator *UacGenerator) ValidateUacs(uacs []string) error {
+func (uacService *UacService) ValidateUacs(uacs []string) error {
 	var importError ImportError
 	for _, uac := range uacs {
-		if !uacGenerator.ValidateUac(uac) {
+		if !uacService.ValidateUac(uac) {
 			importError.InvalidUacs = append(importError.InvalidUacs, uac)
 		}
 	}
@@ -389,8 +389,8 @@ func (uacGenerator *UacGenerator) ValidateUacs(uacs []string) error {
 	return nil
 }
 
-func (uacGenerator *UacGenerator) AdminDelete(instrumentName string) error {
-	instrumentUacKeys, err := uacGenerator.DatastoreClient.GetAll(uacGenerator.Context, uacGenerator.instrumentQuery(instrumentName).KeysOnly(), nil)
+func (uacService *UacService) AdminDelete(instrumentName string) error {
+	instrumentUacKeys, err := uacService.DatastoreClient.GetAll(uacService.Context, uacService.instrumentQuery(instrumentName).KeysOnly(), nil)
 	if err != nil {
 		return err
 	}
@@ -402,14 +402,14 @@ func (uacGenerator *UacGenerator) AdminDelete(instrumentName string) error {
 	for _, uacKeyChunk := range uacKeyChunks {
 		concurrent.Wait()
 		go func(uacKeyChunk []*datastore.Key) {
-			uacGenerator.adminDeleteChunk(uacKeyChunk, concurrent)
+			uacService.adminDeleteChunk(uacKeyChunk, concurrent)
 		}(uacKeyChunk)
 	}
 	concurrent.WaitAllDone()
 	return nil
 }
 
-func (uacGenerator *UacGenerator) getUacsToImport(uacs []string) ([]string, error) {
+func (uacService *UacService) getUacsToImport(uacs []string) ([]string, error) {
 	var (
 		uacsToImport []string
 		importError  ImportError
@@ -425,25 +425,25 @@ func (uacGenerator *UacGenerator) getUacsToImport(uacs []string) ([]string, erro
 		concurrent.Wait()
 		go func(uac string) {
 			defer concurrent.Done()
-			uacInfo, err := uacGenerator.GetUacInfo(uac)
+			uacInfo, err := uacService.GetUacInfo(uac)
 			if err == datastore.ErrNoSuchEntity {
-				uacGenerator.importMu.Lock()
+				uacService.importMu.Lock()
 				uacsToImport = append(uacsToImport, uac)
-				uacGenerator.importMu.Unlock()
+				uacService.importMu.Unlock()
 				return
 			}
 			if err != nil {
-				uacGenerator.importMu.Lock()
+				uacService.importMu.Lock()
 				errors = append(errors, err)
-				uacGenerator.importMu.Unlock()
+				uacService.importMu.Unlock()
 				return
 			}
 			if uacInfo.InstrumentName == UNKNOWNINSTRUMENT {
 				return
 			}
-			uacGenerator.importMu.Lock()
+			uacService.importMu.Lock()
 			importError.InstrumentUacs = append(importError.InstrumentUacs, uac)
-			uacGenerator.importMu.Unlock()
+			uacService.importMu.Unlock()
 		}(uac)
 	}
 	concurrent.WaitAllDone()
@@ -458,7 +458,7 @@ func (uacGenerator *UacGenerator) getUacsToImport(uacs []string) ([]string, erro
 	return uacsToImport, nil
 }
 
-func (uacGenerator *UacGenerator) importUacs(uacs []string) (int, error) {
+func (uacService *UacService) importUacs(uacs []string) (int, error) {
 	var (
 		updateCount = 0
 		errors      []error
@@ -473,16 +473,16 @@ func (uacGenerator *UacGenerator) importUacs(uacs []string) (int, error) {
 		concurrent.Wait()
 		go func(uac string) {
 			defer concurrent.Done()
-			err := uacGenerator.AddUacToDatastore(uac, UNKNOWNINSTRUMENT, UNKNOWNINSTRUMENT)
+			err := uacService.AddUacToDatastore(uac, UNKNOWNINSTRUMENT, UNKNOWNINSTRUMENT)
 			if err != nil {
-				uacGenerator.importMu.Lock()
+				uacService.importMu.Lock()
 				errors = append(errors, err)
-				uacGenerator.importMu.Unlock()
+				uacService.importMu.Unlock()
 				return
 			}
-			uacGenerator.importMu.Lock()
+			uacService.importMu.Lock()
 			updateCount++
-			uacGenerator.importMu.Unlock()
+			uacService.importMu.Unlock()
 		}(uac)
 	}
 	concurrent.WaitAllDone()
@@ -516,34 +516,34 @@ func ChunkUac(uac string) *UacChunks {
 	return uacChunks
 }
 
-func (uacGenerator *UacGenerator) adminDeleteChunk(uacKeyChunk []*datastore.Key, concurrent goccm.ConcurrencyManager) {
+func (uacService *UacService) adminDeleteChunk(uacKeyChunk []*datastore.Key, concurrent goccm.ConcurrencyManager) {
 	defer concurrent.Done()
-	err := uacGenerator.DatastoreClient.DeleteMulti(uacGenerator.Context, uacKeyChunk)
+	err := uacService.DatastoreClient.DeleteMulti(uacService.Context, uacKeyChunk)
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func (uacGenerator *UacGenerator) instrumentCaseQuery(instrumentName, caseID string) *datastore.Query {
-	query := datastore.NewQuery(uacGenerator.UacKind)
+func (uacService *UacService) instrumentCaseQuery(instrumentName, caseID string) *datastore.Query {
+	query := datastore.NewQuery(uacService.UacKind)
 	query = query.FilterField("instrument_name", "=", strings.ToLower(instrumentName))
 	return query.FilterField("case_id", "=", strings.ToLower(caseID))
 }
 
-func (uacGenerator *UacGenerator) instrumentQuery(instrumentName string) *datastore.Query {
-	query := datastore.NewQuery(uacGenerator.UacKind)
+func (uacService *UacService) instrumentQuery(instrumentName string) *datastore.Query {
+	query := datastore.NewQuery(uacService.UacKind)
 	return query.FilterField("instrument_name", "=", strings.ToLower(instrumentName))
 }
 
-func (uacGenerator *UacGenerator) instrumentUacDisabledQuery(instrumentName string) *datastore.Query {
-	query := datastore.NewQuery(uacGenerator.UacKind)
+func (uacService *UacService) instrumentUacDisabledQuery(instrumentName string) *datastore.Query {
+	query := datastore.NewQuery(uacService.UacKind)
 
 	query = query.FilterField("instrument_name", "=", strings.ToLower(instrumentName))
 	return query.FilterField("disabled", "=", true)
 }
 
-func (uacGenerator *UacGenerator) instrumentNamesQuery() *datastore.Query {
-	query := datastore.NewQuery(uacGenerator.UacKind)
+func (uacService *UacService) instrumentNamesQuery() *datastore.Query {
+	query := datastore.NewQuery(uacService.UacKind)
 	query = query.Project("instrument_name")
 	return query.DistinctOn("instrument_name")
 }

@@ -8,14 +8,14 @@ import (
 
 type Server struct {
 	BlaiseRestApi blaiserestapi.BlaiseRestApiInterface
-	UacGenerator  uacgenerator.UacGeneratorInterface
+	UacService  uacgenerator.UacServiceInterface
 }
 
 func (server *Server) SetupRouter() *gin.Engine {
 	httpRouter := gin.Default()
 	uacController := &UacController{
 		BlaiseRestApi: server.BlaiseRestApi,
-		UacGenerator:  server.UacGenerator,
+		UacService:  server.UacService,
 	}
 	uacController.AddRoutes(httpRouter)
 	healthController := &HealthController{}

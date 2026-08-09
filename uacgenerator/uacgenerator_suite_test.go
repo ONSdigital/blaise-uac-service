@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestUacgenerator(t *testing.T) {
+func TestUacService(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Uacgenerator Suite")
+	RunSpecs(t, "UacService Suite")
 }

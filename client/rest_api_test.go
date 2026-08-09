@@ -46,9 +46,9 @@ var _ = Describe("Blaise rest api endpoints", func() {
 			})
 
 			It("returns a NotFound error", func() {
-				recievedInstrumentModes, err := blaiseRestApi.GetCaseIds(instrumentName)
+				receivedInstrumentModes, err := blaiseRestApi.GetCaseIds(instrumentName)
 				Expect(err).To(MatchError("Instrument not found"))
-				Expect(recievedInstrumentModes).To(BeNil())
+				Expect(receivedInstrumentModes).To(BeNil())
 			})
 		})
 
@@ -93,9 +93,9 @@ var _ = Describe("Blaise rest api endpoints", func() {
 			})
 
 			It("returns a NotFound error", func() {
-				recievedInstrumentModes, err := blaiseRestApi.GetInstrumentModes(instrumentName)
+				receivedInstrumentModes, err := blaiseRestApi.GetInstrumentModes(instrumentName)
 				Expect(err).To(MatchError("Instrument not found"))
-				Expect(recievedInstrumentModes).To(BeNil())
+				Expect(receivedInstrumentModes).To(BeNil())
 			})
 		})
 
@@ -106,9 +106,9 @@ var _ = Describe("Blaise rest api endpoints", func() {
 			})
 
 			It("When I call the Blaise Rest Api Modes end point, a list of modes are returned", func() {
-				recievedInstrumentModes, err := blaiseRestApi.GetInstrumentModes(instrumentName)
+				receivedInstrumentModes, err := blaiseRestApi.GetInstrumentModes(instrumentName)
 				Expect(err).To(BeNil())
-				Expect(recievedInstrumentModes).To(Equal(instrumentModes))
+				Expect(receivedInstrumentModes).To(Equal(instrumentModes))
 			})
 		})
 	})

@@ -39,11 +39,11 @@ func main() {
 		BaseUrl:    config.BlaiseBaseUrl,
 		Client:     &http.Client{},
 	}
-	uacGenerator := uacgenerator.NewUacGenerator(datastoreClient, config.UacKind)
+	uacService := uacgenerator.NewUacService(datastoreClient, config.UacKind)
 
 	server := &webserver.Server{
 		BlaiseRestApi: blaiseRestAPI,
-		UacGenerator:  uacGenerator,
+		UacService:  uacService,
 	}
 
 	httpRouter := server.SetupRouter()
