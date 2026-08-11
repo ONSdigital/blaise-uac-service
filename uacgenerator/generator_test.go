@@ -2,8 +2,8 @@ package uacgenerator_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"strconv"
 
 	"cloud.google.com/go/datastore"
 	"github.com/ONSDigital/blaise-uac-service/uacgenerator"
@@ -15,326 +15,116 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var _ = Describe("GenerateUac12", func() {
+var _ = Describe("Generate for a single case", func() {
 	var (
-		uacService  *uacgenerator.UacService
-		mockDatastore *mocks.Datastore
-	)
-
-	BeforeEach(func() {
-		uacService = uacgenerator.NewUacService(mockDatastore, "uac")
-	})
-
-	It("Generates a random 12 digit UAC", func() {
-		for i := 1; i <= 20; i++ {
-			uac := uacService.GenerateUac12()
-
-			Expect(uac).To(MatchRegexp(`^\d{12}$`))
-
-			var startIndex = 0
-			for i := 0; i < 3; i++ {
-				uacSegment, _ := strconv.Atoi(uac[startIndex : startIndex+4])
-				Expect(uacSegment).To(BeNumerically(">=", 1000))
-				Expect(uacSegment).To(BeNumerically("<=", 9999))
-				startIndex = startIndex + 4
-			}
-		}
-	})
-})
-
-var _ = Describe("GenerateUac16", func() {
-	var (
-		uacService  *uacgenerator.UacService
-		mockDatastore *mocks.Datastore
-	)
-
-	BeforeEach(func() {
-		uacService = uacgenerator.NewUacService(mockDatastore, "uac16")
-	})
-
-	It("Generates a random 16 alphanumeric UAC", func() {
-		var unapprovedCharacters = "aeiouyw01"
-		for i := 1; i <= 20; i++ {
-			uac := uacService.GenerateUac16()
-
-			Expect(uac).To(MatchRegexp(fmt.Sprintf(`^[%s]{16}$`, uacgenerator.APPROVEDCHARACTERS)))
-			Expect(uac).ToNot(MatchRegexp(fmt.Sprintf(`^.*[%s]{1}.*$`, unapprovedCharacters)))
-		}
-	})
-})
-
-var _ = Describe("NewUac", func() {
-	var (
-		uacService   *uacgenerator.UacService
+		uacService     *uacgenerator.UACService
 		instrumentName = "lolcat"
 		caseID         = "74628568"
+		mockDatastore  *mocks.DatastoreInterface
 	)
 
-	Context("Generation rules for 12 digit UAC", func() {
-		var mockDatastore *mocks.Datastore
+	BeforeEach(func() {
+		mockDatastore = &mocks.DatastoreInterface{}
 
-		BeforeEach(func() {
-			mockDatastore = &mocks.Datastore{}
-
-			uacService = uacgenerator.NewUacService(mockDatastore, "uac")
-
-			mockDatastore.On("Mutate",
-				uacService.Context,
-				mock.AnythingOfType("*datastore.Mutation"),
-			).Return(nil, nil)
-		})
-
-		It("Generates a random 12 digit UAC", func() {
-			for i := 1; i <= 20; i++ {
-				uac, err := uacService.NewUac(instrumentName, caseID, 0)
-
-				Expect(uac).To(MatchRegexp(`^\d{12}$`))
-				Expect(err).To(BeNil())
-			}
-		})
-
-	})
-
-	Context("Generation rules for 16 alphanumeric UAC", func() {
-		var mockDatastore *mocks.Datastore
-
-		BeforeEach(func() {
-			mockDatastore = &mocks.Datastore{}
-
-			uacService = uacgenerator.NewUacService(mockDatastore, "uac16")
-
-			mockDatastore.On("Mutate",
-				uacService.Context,
-				mock.AnythingOfType("*datastore.Mutation"),
-			).Return(nil, nil)
-		})
-
-		It("Generates a random 16 character alphanumeric UAC", func() {
-			for i := 1; i <= 20; i++ {
-				uac, err := uacService.NewUac(instrumentName, caseID, 0)
-
-				Expect(uac).To(MatchRegexp(fmt.Sprintf(`^[%s]{16}$`, uacgenerator.APPROVEDCHARACTERS)))
-				Expect(err).To(BeNil())
-			}
-		})
+		mockDatastore.On("GetAll",
+			context.Background(),
+			mock.AnythingOfType("*datastore.Query"),
+			mock.AnythingOfType("*[]*uacgenerator.UACInfo"),
+		).Return(nil, nil)
 	})
 
 	Context("when a UAC kind is blank", func() {
-		var mockDatastore *mocks.Datastore
-
 		BeforeEach(func() {
-			mockDatastore = &mocks.Datastore{}
-
-			uacService = uacgenerator.NewUacService(mockDatastore, "")
-
-			mockDatastore.On("Mutate",
-				uacService.Context,
-				mock.AnythingOfType("*datastore.Mutation"),
-			).Return(nil, nil)
+			uacService = uacgenerator.NewUACService(mockDatastore, "")
 		})
 
 		It("returns an error", func() {
-			uac, err := uacService.NewUac(instrumentName, caseID, 0)
-			Expect(uac).To(BeEmpty())
-			Expect(err).To(MatchError("Cannot generate UACs for invalid UacKind"))
+			err := uacService.Generate(context.Background(), instrumentName, []string{caseID})
+			Expect(errors.Is(err, uacgenerator.ErrInvalidUACKind)).To(BeTrue())
 		})
 	})
 
 	Context("when a UAC kind is invalid", func() {
-		var mockDatastore *mocks.Datastore
-
 		BeforeEach(func() {
-			mockDatastore = &mocks.Datastore{}
-
-			uacService = uacgenerator.NewUacService(mockDatastore, "this is not a valid UWACKY")
-
-			mockDatastore.On("Mutate",
-				uacService.Context,
-				mock.AnythingOfType("*datastore.Mutation"),
-			).Return(nil, nil)
+			uacService = uacgenerator.NewUACService(mockDatastore, "this is not a valid UWACKY")
 		})
 
 		It("returns an error", func() {
-			uac, err := uacService.NewUac(instrumentName, caseID, 0)
-			Expect(uac).To(BeEmpty())
-			Expect(err).To(MatchError("Cannot generate UACs for invalid UacKind"))
+			err := uacService.Generate(context.Background(), instrumentName, []string{caseID})
+			Expect(errors.Is(err, uacgenerator.ErrInvalidUACKind)).To(BeTrue())
 		})
 	})
 
-	Context("when a caseID is blank", func() {
+	Context("when a case ID is blank", func() {
+		BeforeEach(func() {
+			uacService = uacgenerator.NewUACService(mockDatastore, "uac")
+		})
+
 		It("returns an error", func() {
-			uacService.UacKind = "uac"
-			uac, err := uacService.NewUac(instrumentName, "", 0)
-			Expect(uac).To(BeEmpty())
-			Expect(err).To(MatchError("Cannot generate UACs for blank caseIDs"))
+			err := uacService.Generate(context.Background(), instrumentName, []string{""})
+			Expect(errors.Is(err, uacgenerator.ErrBlankCaseID)).To(BeTrue())
 		})
 	})
 
 	Context("when a generated UAC already exists in datastore", func() {
-		var mockDatastore *mocks.Datastore
 		BeforeEach(func() {
-			mockDatastore = &mocks.Datastore{}
-
-			uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+			uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 			mockDatastore.On("Mutate",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Mutation"),
 			).Twice().Return(nil, status.Error(codes.AlreadyExists, "Already exists"))
 			mockDatastore.On("Mutate",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
-		It("Regenerates a new random UAC and saves it to datastore", func() {
-			_, err := uacService.NewUac(instrumentName, caseID, 0)
+		It("regenerates a new random UAC and saves it to datastore", func() {
+			err := uacService.Generate(context.Background(), instrumentName, []string{caseID})
 			Expect(err).ShouldNot(HaveOccurred())
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 3)
 		})
 	})
 
 	Context("when a generated UAC does not exist in datastore", func() {
-		var mockDatastore *mocks.Datastore
 		BeforeEach(func() {
-			mockDatastore = &mocks.Datastore{}
-
-			uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+			uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 			mockDatastore.On("Mutate",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
-		It("Saves the UAC to datastore", func() {
-			_, err := uacService.NewUac(instrumentName, caseID, 0)
+		It("saves the UAC to datastore", func() {
+			err := uacService.Generate(context.Background(), instrumentName, []string{caseID})
 			Expect(err).ShouldNot(HaveOccurred())
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 1)
 		})
 	})
 
 	Context("when a generated UAC already exists in datastore over 10 times", func() {
-		var mockDatastore *mocks.Datastore
 		BeforeEach(func() {
-			mockDatastore = &mocks.Datastore{}
-
-			uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+			uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 			mockDatastore.On("Mutate",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, status.Error(codes.AlreadyExists, "Already exists"))
 		})
 
 		It("gives up generating a UAC and returns an error", func() {
-			uac, err := uacService.NewUac(instrumentName, caseID, 0)
-			Expect(uac).To(Equal(""))
+			err := uacService.Generate(context.Background(), instrumentName, []string{caseID})
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 10)
-			Expect(err).To(MatchError("Could not generate a unique UAC in 10 attempts"))
-		})
-	})
-})
-
-var _ = Describe("AddUacToDatastore", func() {
-	var (
-		uacService  *uacgenerator.UacService
-		mockDatastore *mocks.Datastore
-	)
-
-	BeforeEach(func() {
-		mockDatastore = &mocks.Datastore{}
-		uacService = uacgenerator.NewUacService(mockDatastore, "uac")
-	})
-
-	It("writes a new UAC mutation to datastore", func() {
-		mockDatastore.On("Mutate",
-			uacService.Context,
-			mock.AnythingOfType("*datastore.Mutation"),
-		).Return(nil, nil)
-
-		err := uacService.AddUacToDatastore("123412341234", "INSTRUMENT", "CASEID")
-
-		Expect(err).To(BeNil())
-		mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 1)
-	})
-
-	It("returns datastore errors", func() {
-		mockDatastore.On("Mutate",
-			uacService.Context,
-			mock.AnythingOfType("*datastore.Mutation"),
-		).Return(nil, fmt.Errorf("mutation failed"))
-
-		err := uacService.AddUacToDatastore("123412341234", "INSTRUMENT", "CASEID")
-
-		Expect(err).To(MatchError("mutation failed"))
-	})
-})
-
-var _ = Describe("UacKey", func() {
-	var uacService = &uacgenerator.UacService{}
-
-	It("Generates a datastore named key of the correct kind", func() {
-		key := uacService.UacKey("test123")
-
-		Expect(key.Kind).To(Equal(uacService.UacKind))
-		Expect(key.Name).To(Equal("test123"))
-	})
-})
-
-var _ = Describe("UacExistsForCase", func() {
-	var (
-		uacService   *uacgenerator.UacService
-		instrumentName = "lolcat"
-		caseID         = "74628568"
-	)
-
-	Context("When a UAC already exists", func() {
-		BeforeEach(func() {
-			mockDatastore := &mocks.Datastore{}
-
-			uacService = uacgenerator.NewUacService(mockDatastore, "uac")
-
-			mockDatastore.On("GetAll",
-				uacService.Context,
-				mock.AnythingOfType("*datastore.Query"),
-				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
-			).Return([]*datastore.Key{datastore.IncompleteKey("foo", nil)}, nil)
-		})
-
-		It("returns true", func() {
-			exists, err := uacService.UacExistsForCase(instrumentName, caseID)
-
-			Expect(exists).To(BeTrue())
-			Expect(err).To(BeNil())
-		})
-	})
-
-	Context("When a UAC does not exist", func() {
-		BeforeEach(func() {
-			mockDatastore := &mocks.Datastore{}
-
-			uacService = uacgenerator.NewUacService(mockDatastore, "uac")
-
-			mockDatastore.On("GetAll",
-				uacService.Context,
-				mock.AnythingOfType("*datastore.Query"),
-				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
-			).Return(nil, nil)
-		})
-
-		It("returns false", func() {
-			exists, err := uacService.UacExistsForCase(instrumentName, caseID)
-
-			Expect(exists).To(BeFalse())
-			Expect(err).To(BeNil())
+			Expect(errors.Is(err, uacgenerator.ErrCouldNotGenerateUniqueUAC)).To(BeTrue())
 		})
 	})
 })
 
 var _ = Describe("Generate", func() {
 	var (
-		uacService   *uacgenerator.UacService
+		uacService     *uacgenerator.UACService
 		instrumentName = "lolcat"
 		caseIDs        = []string{
 			"74628568",
@@ -343,29 +133,29 @@ var _ = Describe("Generate", func() {
 			"74628563",
 			"74628564",
 		}
-		mockDatastore *mocks.Datastore
+		mockDatastore *mocks.DatastoreInterface
 	)
 
-	Context("when none of the cases have a uac", func() {
+	Context("when none of the cases have a UAC", func() {
 		BeforeEach(func() {
-			mockDatastore = &mocks.Datastore{}
+			mockDatastore = &mocks.DatastoreInterface{}
 
-			uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+			uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 			mockDatastore.On("GetAll",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Query"),
-				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*[]*uacgenerator.UACInfo"),
 			).Return(nil, nil)
 
 			mockDatastore.On("Mutate",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
-		It("generates uacs for all case ids in an instrument", func() {
-			Expect(uacService.Generate(instrumentName, caseIDs)).To(BeNil())
+		It("generates UACs for all case IDs in an instrument", func() {
+			Expect(uacService.Generate(context.Background(), instrumentName, caseIDs)).To(BeNil())
 
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", len(caseIDs))
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "GetAll", len(caseIDs))
@@ -374,61 +164,61 @@ var _ = Describe("Generate", func() {
 
 	Context("when at least one generation errors", func() {
 		BeforeEach(func() {
-			mockDatastore = &mocks.Datastore{}
+			mockDatastore = &mocks.DatastoreInterface{}
 
-			uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+			uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 			mockDatastore.On("GetAll",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Query"),
-				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*[]*uacgenerator.UACInfo"),
 			).Return(nil, nil)
 
 			mockDatastore.On("Mutate",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Mutation"),
 			).Once().Return(nil, nil)
 			mockDatastore.On("Mutate",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Mutation"),
 			).Once().Return(nil, fmt.Errorf("Massive mutation explosion"))
 			mockDatastore.On("Mutate",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
 		It("returns an error", func() {
-			Expect(uacService.Generate(instrumentName, caseIDs)).To(MatchError("Massive mutation explosion"))
+			Expect(uacService.Generate(context.Background(), instrumentName, caseIDs)).To(MatchError("Massive mutation explosion"))
 		})
 	})
 
-	Context("when one of the cases already has a uac", func() {
+	Context("when one of the cases already has a UAC", func() {
 		BeforeEach(func() {
-			mockDatastore = &mocks.Datastore{}
+			mockDatastore = &mocks.DatastoreInterface{}
 
-			uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+			uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 			mockDatastore.On("GetAll",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Query"),
-				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*[]*uacgenerator.UACInfo"),
 			).Once().Return([]*datastore.Key{datastore.IncompleteKey("foo", nil)}, nil)
 
 			mockDatastore.On("GetAll",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Query"),
-				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*[]*uacgenerator.UACInfo"),
 			).Return(nil, nil)
 
 			mockDatastore.On("Mutate",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
-		It("generates uacs for all case ids in an instrument", func() {
-			Expect(uacService.Generate(instrumentName, caseIDs)).To(BeNil())
+		It("generates UACs for all case IDs in an instrument", func() {
+			Expect(uacService.Generate(context.Background(), instrumentName, caseIDs)).To(BeNil())
 
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", len(caseIDs)-1)
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "GetAll", len(caseIDs))
@@ -437,24 +227,24 @@ var _ = Describe("Generate", func() {
 
 	Context("when there are no cases", func() {
 		BeforeEach(func() {
-			mockDatastore = &mocks.Datastore{}
+			mockDatastore = &mocks.DatastoreInterface{}
 
-			uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+			uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 			mockDatastore.On("GetAll",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Query"),
-				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*[]*uacgenerator.UACInfo"),
 			).Return(nil, nil)
 
 			mockDatastore.On("Mutate",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Mutation"),
 			).Return(nil, nil)
 		})
 
-		It("generates uacs for all case ids in an instrument", func() {
-			Expect(uacService.Generate(instrumentName, []string{})).To(BeNil())
+		It("generates UACs for all case IDs in an instrument", func() {
+			Expect(uacService.Generate(context.Background(), instrumentName, []string{})).To(BeNil())
 
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "GetAll", 0)
@@ -462,36 +252,36 @@ var _ = Describe("Generate", func() {
 	})
 })
 
-var _ = Describe("GetAllUacs", func() {
+var _ = Describe("GetAllUACs", func() {
 	var (
-		uacService   *uacgenerator.UacService
+		uacService     *uacgenerator.UACService
 		instrumentName = "lolcat"
-		mockDatastore  *mocks.Datastore
+		mockDatastore  *mocks.DatastoreInterface
 	)
 
 	BeforeEach(func() {
-		mockDatastore = &mocks.Datastore{}
+		mockDatastore = &mocks.DatastoreInterface{}
 
-		uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+		uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 		mockDatastore.On("GetAll",
-			uacService.Context,
+			context.Background(),
 			mock.AnythingOfType("*datastore.Query"),
-			mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
+			mock.AnythingOfType("*[]*uacgenerator.UACInfo"),
 		).Once().Return(
 			func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
-				uacInfos := dst.(*[]*uacgenerator.UacInfo)
-				key := uacService.UacKey("foobar")
-				*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+				uacInfos := dst.(*[]*uacgenerator.UACInfo)
+				key := datastore.NameKey(uacService.UACKind, "foobar", nil)
+				*uacInfos = append(*uacInfos, &uacgenerator.UACInfo{
 					InstrumentName: instrumentName,
 					CaseID:         "12343",
-					Uac:            key,
+					UAC:            key,
 				})
-				key2 := uacService.UacKey("foobar2")
-				*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+				key2 := datastore.NameKey(uacService.UACKind, "foobar2", nil)
+				*uacInfos = append(*uacInfos, &uacgenerator.UACInfo{
 					InstrumentName: instrumentName,
 					CaseID:         "56764",
-					Uac:            key2,
+					UAC:            key2,
 				})
 				return []*datastore.Key{key, key2}
 			},
@@ -500,8 +290,8 @@ var _ = Describe("GetAllUacs", func() {
 			})
 	})
 
-	It("returns a map of all uacs with info", func() {
-		uacs, err := uacService.GetAllUacs(instrumentName)
+	It("returns a map of all UACs with info", func() {
+		uacs, err := uacService.GetAllUACs(context.Background(), instrumentName)
 		Expect(uacs).To(HaveLen(2))
 		Expect(uacs["foobar"].InstrumentName).To(Equal(instrumentName))
 		Expect(uacs["foobar"].CaseID).To(Equal("12343"))
@@ -511,37 +301,37 @@ var _ = Describe("GetAllUacs", func() {
 	})
 })
 
-var _ = Describe("GetAllUacsByCaseID", func() {
+var _ = Describe("GetAllUACsByCaseID", func() {
 	var (
-		uacService   *uacgenerator.UacService
+		uacService     *uacgenerator.UACService
 		instrumentName = "lolcat"
-		mockDatastore  *mocks.Datastore
+		mockDatastore  *mocks.DatastoreInterface
 	)
 
-	Context("when there are duplicate case ids", func() {
+	Context("when there are duplicate case IDs", func() {
 		BeforeEach(func() {
-			mockDatastore = &mocks.Datastore{}
+			mockDatastore = &mocks.DatastoreInterface{}
 
-			uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+			uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 			mockDatastore.On("GetAll",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Query"),
-				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*[]*uacgenerator.UACInfo"),
 			).Once().Return(
 				func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
-					uacInfos := dst.(*[]*uacgenerator.UacInfo)
-					key := uacService.UacKey("foobar")
-					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+					uacInfos := dst.(*[]*uacgenerator.UACInfo)
+					key := datastore.NameKey(uacService.UACKind, "foobar", nil)
+					*uacInfos = append(*uacInfos, &uacgenerator.UACInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "12343",
-						Uac:            key,
+						UAC:            key,
 					})
-					key2 := uacService.UacKey("foobar2")
-					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+					key2 := datastore.NameKey(uacService.UACKind, "foobar2", nil)
+					*uacInfos = append(*uacInfos, &uacgenerator.UACInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "12343",
-						Uac:            key2,
+						UAC:            key2,
 					})
 					return []*datastore.Key{key, key2}
 				},
@@ -551,36 +341,36 @@ var _ = Describe("GetAllUacsByCaseID", func() {
 		})
 
 		It("returns an error", func() {
-			uacs, err := uacService.GetAllUacsByCaseID(instrumentName)
+			uacs, err := uacService.GetAllUACsByCaseID(context.Background(), instrumentName)
 			Expect(uacs).To(BeNil())
-			Expect(err).To(MatchError("Fewer case ids than uacs, must be duplicate case ids"))
+			Expect(err).To(MatchError("fewer case IDs than UACs: duplicate case IDs detected"))
 		})
 	})
 
-	Context("when there are no duplicate case ids", func() {
+	Context("when there are no duplicate case IDs", func() {
 		BeforeEach(func() {
-			mockDatastore = &mocks.Datastore{}
+			mockDatastore = &mocks.DatastoreInterface{}
 
-			uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+			uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 			mockDatastore.On("GetAll",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Query"),
-				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*[]*uacgenerator.UACInfo"),
 			).Once().Return(
 				func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
-					uacInfos := dst.(*[]*uacgenerator.UacInfo)
-					key := uacService.UacKey("foobar")
-					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+					uacInfos := dst.(*[]*uacgenerator.UACInfo)
+					key := datastore.NameKey(uacService.UACKind, "foobar", nil)
+					*uacInfos = append(*uacInfos, &uacgenerator.UACInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "12343",
-						Uac:            key,
+						UAC:            key,
 					})
-					key2 := uacService.UacKey("foobar2")
-					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+					key2 := datastore.NameKey(uacService.UACKind, "foobar2", nil)
+					*uacInfos = append(*uacInfos, &uacgenerator.UACInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "56764",
-						Uac:            key2,
+						UAC:            key2,
 					})
 					return []*datastore.Key{key, key2}
 				},
@@ -589,8 +379,8 @@ var _ = Describe("GetAllUacsByCaseID", func() {
 				})
 		})
 
-		It("returns a map of all uacs with info", func() {
-			uacs, err := uacService.GetAllUacsByCaseID(instrumentName)
+		It("returns a map of all UACs with info", func() {
+			uacs, err := uacService.GetAllUACsByCaseID(context.Background(), instrumentName)
 			Expect(uacs).To(HaveLen(2))
 			Expect(uacs["12343"].InstrumentName).To(Equal(instrumentName))
 			Expect(uacs["12343"].CaseID).To(Equal("12343"))
@@ -601,62 +391,62 @@ var _ = Describe("GetAllUacsByCaseID", func() {
 	})
 })
 
-var _ = Describe("GetUacCount", func() {
+var _ = Describe("GetUACCount", func() {
 	var (
-		uacService   *uacgenerator.UacService
+		uacService     *uacgenerator.UACService
 		instrumentName = "lolcat"
-		mockDatastore  *mocks.Datastore
+		mockDatastore  *mocks.DatastoreInterface
 	)
 
 	BeforeEach(func() {
-		mockDatastore = &mocks.Datastore{}
+		mockDatastore = &mocks.DatastoreInterface{}
 
-		uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+		uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 		mockDatastore.On("Count",
-			uacService.Context,
+			context.Background(),
 			mock.AnythingOfType("*datastore.Query"),
 		).Return(40, nil)
 	})
 
-	It("returns a map of all uacs with info", func() {
-		count, err := uacService.GetUacCount(instrumentName)
+	It("returns the UAC count", func() {
+		count, err := uacService.GetUACCount(context.Background(), instrumentName)
 		Expect(count).To(Equal(40))
 		Expect(err).To(BeNil())
 	})
 })
 
-var _ = Describe("GetUacInfo", func() {
+var _ = Describe("GetUACInfo", func() {
 	var (
-		uacService   *uacgenerator.UacService
+		uacService     *uacgenerator.UACService
 		instrumentName = "lolcat"
-		mockDatastore  *mocks.Datastore
+		mockDatastore  *mocks.DatastoreInterface
 	)
 
 	BeforeEach(func() {
-		mockDatastore = &mocks.Datastore{}
+		mockDatastore = &mocks.DatastoreInterface{}
 
-		uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+		uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 		mockDatastore.On("Get",
-			uacService.Context,
+			context.Background(),
 			mock.AnythingOfType("*datastore.Key"),
-			mock.AnythingOfType("*uacgenerator.UacInfo"),
+			mock.AnythingOfType("*uacgenerator.UACInfo"),
 		).Once().Return(
 			func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
-				uacInfo := dst.(*uacgenerator.UacInfo)
-				key := uacService.UacKey("lemons")
-				*uacInfo = uacgenerator.UacInfo{
+				uacInfo := dst.(*uacgenerator.UACInfo)
+				key := datastore.NameKey(uacService.UACKind, "lemons", nil)
+				*uacInfo = uacgenerator.UACInfo{
 					InstrumentName: instrumentName,
 					CaseID:         "12343",
-					Uac:            key,
+					UAC:            key,
 				}
 				return nil
 			})
 	})
 
-	It("Returns UacInfo for a valid UAC", func() {
-		uacInfo, err := uacService.GetUacInfo("lemons")
+	It("returns UAC info for a valid UAC", func() {
+		uacInfo, err := uacService.GetUACInfo(context.Background(), "lemons")
 		Expect(uacInfo.InstrumentName).To(Equal(instrumentName))
 		Expect(uacInfo.CaseID).To(Equal("12343"))
 		Expect(err).To(BeNil())
@@ -665,26 +455,26 @@ var _ = Describe("GetUacInfo", func() {
 
 var _ = Describe("GetInstruments", func() {
 	var (
-		uacService  *uacgenerator.UacService
-		mockDatastore *mocks.Datastore
+		uacService    *uacgenerator.UACService
+		mockDatastore *mocks.DatastoreInterface
 	)
 
 	BeforeEach(func() {
-		mockDatastore = &mocks.Datastore{}
+		mockDatastore = &mocks.DatastoreInterface{}
 
-		uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+		uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 		mockDatastore.On("GetAll",
-			uacService.Context,
+			context.Background(),
 			mock.AnythingOfType("*datastore.Query"),
-			mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
+			mock.AnythingOfType("*[]*uacgenerator.UACInfo"),
 		).Once().Return(
 			func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
-				uacInfos := dst.(*[]*uacgenerator.UacInfo)
-				*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+				uacInfos := dst.(*[]*uacgenerator.UACInfo)
+				*uacInfos = append(*uacInfos, &uacgenerator.UACInfo{
 					InstrumentName: "foo",
 				})
-				*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+				*uacInfos = append(*uacInfos, &uacgenerator.UACInfo{
 					InstrumentName: "bar",
 				})
 				return []*datastore.Key{}
@@ -694,50 +484,41 @@ var _ = Describe("GetInstruments", func() {
 			})
 	})
 
-	It("Returns a list of instrument names", func() {
-		instrumentNames, err := uacService.GetInstruments()
+	It("returns a list of instrument names", func() {
+		instrumentNames, err := uacService.GetInstruments(context.Background())
 		Expect(err).To(BeNil())
 		Expect(instrumentNames).To(Equal([]string{"foo", "bar"}))
 	})
 })
 
-var _ = DescribeTable("ChunkUac",
-	func(uac string, expected uacgenerator.UacChunks) {
-		Expect(*uacgenerator.ChunkUac(uac)).To(Equal(expected))
-	},
-	Entry("123456781234", "123456781234", uacgenerator.UacChunks{Uac1: "1234", Uac2: "5678", Uac3: "1234"}),
-	Entry("111122223333", "111122223333", uacgenerator.UacChunks{Uac1: "1111", Uac2: "2222", Uac3: "3333"}),
-	Entry("11112222333344444", "1111222233334444", uacgenerator.UacChunks{Uac1: "1111", Uac2: "2222", Uac3: "3333", Uac4: "4444"}),
-)
-
-var _ = Describe("Uacs", func() {
-	Describe("BuildUacChunks", func() {
-		var uacs = uacgenerator.Uacs{
-			"111122223333": &uacgenerator.UacInfo{},
-			"123456781234": &uacgenerator.UacInfo{},
+var _ = Describe("UACs", func() {
+	Describe("BuildUACChunks", func() {
+		var uacs = uacgenerator.UACs{
+			"111122223333": &uacgenerator.UACInfo{},
+			"123456781234": &uacgenerator.UACInfo{},
 		}
 
-		It("Adds UacChunks to the UacInfo", func() {
-			uacs.BuildUacChunks()
-			Expect(*uacs["111122223333"].UacChunks).To(Equal(uacgenerator.UacChunks{Uac1: "1111", Uac2: "2222", Uac3: "3333"}))
-			Expect(*uacs["123456781234"].UacChunks).To(Equal(uacgenerator.UacChunks{Uac1: "1234", Uac2: "5678", Uac3: "1234"}))
+		It("adds UAC chunks to UAC info", func() {
+			uacs.BuildUACChunks()
+			Expect(*uacs["111122223333"].UACChunks).To(Equal(uacgenerator.UACChunks{UAC1: "1111", UAC2: "2222", UAC3: "3333"}))
+			Expect(*uacs["123456781234"].UACChunks).To(Equal(uacgenerator.UACChunks{UAC1: "1234", UAC2: "5678", UAC3: "1234"}))
 		})
 	})
 })
 
-var _ = Describe("ImportUacs", func() {
+var _ = Describe("ImportUACs", func() {
 	var (
-		uacService  *uacgenerator.UacService
-		mockDatastore *mocks.Datastore
+		uacService    *uacgenerator.UACService
+		mockDatastore *mocks.DatastoreInterface
 		uacs          []string
 	)
 
 	BeforeEach(func() {
-		mockDatastore = &mocks.Datastore{}
-		uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+		mockDatastore = &mocks.DatastoreInterface{}
+		uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 		mockDatastore.On("Mutate",
-			uacService.Context,
+			context.Background(),
 			mock.AnythingOfType("*datastore.Mutation"),
 		).Return(nil, nil)
 	})
@@ -746,13 +527,13 @@ var _ = Describe("ImportUacs", func() {
 		uacs = []string{}
 	})
 
-	Context("when there are no uacs", func() {
+	Context("when there are no UACs", func() {
 		BeforeEach(func() {
 			uacs = []string{}
 		})
 
 		It("imports nothing and returns 0 imported with no error", func() {
-			updateCount, err := uacService.ImportUacs(uacs)
+			updateCount, err := uacService.ImportUACs(context.Background(), uacs)
 			Expect(updateCount).To(Equal(0))
 			Expect(err).To(BeNil())
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
@@ -765,14 +546,14 @@ var _ = Describe("ImportUacs", func() {
 				uacs = []string{"123456789123", "123456789145", "123556789987"}
 
 				mockDatastore.On("Get",
-					uacService.Context,
+					context.Background(),
 					mock.AnythingOfType("*datastore.Key"),
-					mock.AnythingOfType("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*uacgenerator.UACInfo"),
 				).Return(datastore.ErrNoSuchEntity)
 			})
 
 			It("imports all of the UACs", func() {
-				updateCount, err := uacService.ImportUacs(uacs)
+				updateCount, err := uacService.ImportUACs(context.Background(), uacs)
 				Expect(updateCount).To(Equal(3))
 				Expect(err).To(BeNil())
 				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 3)
@@ -785,7 +566,7 @@ var _ = Describe("ImportUacs", func() {
 			})
 
 			It("errors and doesn't import anything", func() {
-				updateCount, err := uacService.ImportUacs(uacs)
+				updateCount, err := uacService.ImportUACs(context.Background(), uacs)
 				Expect(updateCount).To(Equal(0))
 				Expect(err).To(MatchError(`Cannot import UACs because some were invalid: ["a2sad", "2131asda91298"]`))
 				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
@@ -798,23 +579,23 @@ var _ = Describe("ImportUacs", func() {
 			uacs = []string{"123456789123", "123456789145", "123556789987"}
 
 			mockDatastore.On("Get",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Key"),
-				mock.AnythingOfType("*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*uacgenerator.UACInfo"),
 			).Return(func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
-				uacInfo := dst.(*uacgenerator.UacInfo)
-				key := uacService.UacKey("any")
-				*uacInfo = uacgenerator.UacInfo{
+				uacInfo := dst.(*uacgenerator.UACInfo)
+				key := datastore.NameKey(uacService.UACKind, "any", nil)
+				*uacInfo = uacgenerator.UACInfo{
 					InstrumentName: "unknown",
 					CaseID:         "unknown",
-					Uac:            key,
+					UAC:            key,
 				}
 				return nil
 			})
 		})
 
 		It("imports nothing and returns 0 imported with no error", func() {
-			updateCount, err := uacService.ImportUacs(uacs)
+			updateCount, err := uacService.ImportUACs(context.Background(), uacs)
 			Expect(updateCount).To(Equal(0))
 			Expect(err).To(BeNil())
 			mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
@@ -829,28 +610,28 @@ var _ = Describe("ImportUacs", func() {
 		Context("and they have an InstrumentName of 'unknown'", func() {
 			BeforeEach(func() {
 				mockDatastore.On("Get",
-					uacService.Context,
+					context.Background(),
 					mock.AnythingOfType("*datastore.Key"),
-					mock.AnythingOfType("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*uacgenerator.UACInfo"),
 				).Times(2).Return(datastore.ErrNoSuchEntity)
 				mockDatastore.On("Get",
-					uacService.Context,
+					context.Background(),
 					mock.AnythingOfType("*datastore.Key"),
-					mock.AnythingOfType("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*uacgenerator.UACInfo"),
 				).Return(func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
-					uacInfo := dst.(*uacgenerator.UacInfo)
-					key := uacService.UacKey("123556789987")
-					*uacInfo = uacgenerator.UacInfo{
+					uacInfo := dst.(*uacgenerator.UACInfo)
+					key := datastore.NameKey(uacService.UACKind, "123556789987", nil)
+					*uacInfo = uacgenerator.UACInfo{
 						InstrumentName: "unknown",
 						CaseID:         "unknown",
-						Uac:            key,
+						UAC:            key,
 					}
 					return nil
 				})
 			})
 
 			It("imports all of the UACs, skipping those that already exist", func() {
-				updateCount, err := uacService.ImportUacs(uacs)
+				updateCount, err := uacService.ImportUACs(context.Background(), uacs)
 				Expect(updateCount).To(Equal(2))
 				Expect(err).To(BeNil())
 				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 2)
@@ -860,28 +641,28 @@ var _ = Describe("ImportUacs", func() {
 		Context("and they have InstrumentNames that are not 'unknown'", func() {
 			BeforeEach(func() {
 				mockDatastore.On("Get",
-					uacService.Context,
-					uacService.UacKey("123556789987"),
-					mock.AnythingOfType("*uacgenerator.UacInfo"),
+					context.Background(),
+					datastore.NameKey(uacService.UACKind, "123556789987", nil),
+					mock.AnythingOfType("*uacgenerator.UACInfo"),
 				).Return(func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
-					uacInfo := dst.(*uacgenerator.UacInfo)
-					key := uacService.UacKey("123556789987")
-					*uacInfo = uacgenerator.UacInfo{
+					uacInfo := dst.(*uacgenerator.UACInfo)
+					key := datastore.NameKey(uacService.UACKind, "123556789987", nil)
+					*uacInfo = uacgenerator.UACInfo{
 						InstrumentName: "dst2108a",
 						CaseID:         "1234",
-						Uac:            key,
+						UAC:            key,
 					}
 					return nil
 				})
 				mockDatastore.On("Get",
-					uacService.Context,
+					context.Background(),
 					mock.AnythingOfType("*datastore.Key"),
-					mock.AnythingOfType("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*uacgenerator.UACInfo"),
 				).Return(datastore.ErrNoSuchEntity)
 			})
 
 			It("errors and doesn't import anything", func() {
-				updateCount, err := uacService.ImportUacs(uacs)
+				updateCount, err := uacService.ImportUACs(context.Background(), uacs)
 				Expect(updateCount).To(Equal(0))
 				Expect(err).To(MatchError(`Cannot import UACs because some were already in use by questionnaires: ["123556789987"]`))
 				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
@@ -890,132 +671,38 @@ var _ = Describe("ImportUacs", func() {
 	})
 })
 
-var _ = Describe("ValidateUac12", func() {
-	var uacService = &uacgenerator.UacService{}
-	DescribeTable("Validations",
-		func(uac string, expected bool) {
-			Expect(uacService.ValidateUac12(uac)).To(Equal(expected))
-		},
-		Entry("short", "21314", false),
-		Entry("long", "21314632512345123", false),
-		Entry("letters", "abcdabcdabcd", false),
-		Entry("badnumbers", "1234012341234", false),
-		Entry("goodnumbers", "123412341234", true),
-	)
-})
-
-var _ = Describe("ValidateUac16", func() {
-	var uacService = &uacgenerator.UacService{}
-	DescribeTable("Validations",
-		func(uac string, expected bool) {
-			Expect(uacService.ValidateUac16(uac)).To(Equal(expected))
-		},
-		Entry("short", "21314", false),
-		Entry("long", "21314632512345123", false),
-		Entry("vowles", "abcdabcdabcdabcd", false),
-		Entry("ones", "1111222233334444", false),
-		Entry("zeroes", "0000222233334444", false),
-		Entry("all letters", "mnbvmnbvmnbvmnbv", true),
-		Entry("all numbers", "2345678923456789", true),
-		Entry("mix", "23kl56mn78fd42bn", true),
-	)
-})
-
-var _ = Describe("ValidateUac", func() {
+var _ = Describe("GetAllDisabledUACs", func() {
 	var (
-		uacService = &uacgenerator.UacService{}
-		uac12        = "123412341234"
-		uac16        = "23kl56mn78fd42bn"
-	)
-	Context("when configured for 12 digit UACs", func() {
-		BeforeEach(func() {
-			uacService.UacKind = "uac"
-		})
-
-		Context("when a 16 character UAC is provided", func() {
-			It("returns false", func() {
-				Expect(uacService.ValidateUac(uac16)).To(BeFalse())
-			})
-		})
-
-		Context("when a 12 digit UAC is provided", func() {
-			It("returns true", func() {
-				Expect(uacService.ValidateUac(uac12)).To(BeTrue())
-			})
-		})
-	})
-
-	Context("when configured for 16 character UACs", func() {
-		BeforeEach(func() {
-			uacService.UacKind = "uac16"
-		})
-
-		Context("when a 16 character UAC is provided", func() {
-			It("returns true", func() {
-				Expect(uacService.ValidateUac(uac16)).To(BeTrue())
-			})
-		})
-
-		Context("when a 12 digit UAC is provided", func() {
-			It("returns false", func() {
-				Expect(uacService.ValidateUac(uac12)).To(BeFalse())
-			})
-		})
-	})
-})
-
-var _ = Describe("ValidateUacs", func() {
-	var uacService = &uacgenerator.UacService{}
-	Context("when some uacs are invalid", func() {
-		var uacs = []string{"2313", "41512", "123412341234"}
-
-		It("returns an ImportError with invalid UACs", func() {
-			err := uacService.ValidateUacs(uacs)
-			Expect(err.(*uacgenerator.ImportError).InvalidUacs).To(Equal([]string{"2313", "41512"}))
-		})
-	})
-
-	Context("when all uacs are valid", func() {
-		var uacs = []string{"123412341234", "456745674567"}
-
-		It("returns nil", func() {
-			Expect(uacService.ValidateUacs(uacs)).To(BeNil())
-		})
-	})
-})
-
-var _ = Describe("GetDisabledUacs", func() {
-	var (
-		uacService   *uacgenerator.UacService
+		uacService     *uacgenerator.UACService
 		instrumentName = "lolcat"
-		mockDatastore  *mocks.Datastore
+		mockDatastore  *mocks.DatastoreInterface
 	)
 
-	Context("when there are duplicate disabled uacs with the same case id", func() {
+	Context("when there are duplicate disabled UACs with the same case ID", func() {
 		BeforeEach(func() {
-			mockDatastore = &mocks.Datastore{}
+			mockDatastore = &mocks.DatastoreInterface{}
 
-			uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+			uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 			mockDatastore.On("GetAll",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Query"),
-				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*[]*uacgenerator.UACInfo"),
 			).Once().Return(
 				func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
-					uacInfos := dst.(*[]*uacgenerator.UacInfo)
-					key := uacService.UacKey("foobar")
-					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+					uacInfos := dst.(*[]*uacgenerator.UACInfo)
+					key := datastore.NameKey(uacService.UACKind, "foobar", nil)
+					*uacInfos = append(*uacInfos, &uacgenerator.UACInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "12343",
-						Uac:            key,
+						UAC:            key,
 						Disabled:       true,
 					})
-					key2 := uacService.UacKey("foobar2")
-					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+					key2 := datastore.NameKey(uacService.UACKind, "foobar2", nil)
+					*uacInfos = append(*uacInfos, &uacgenerator.UACInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "12343",
-						Uac:            key2,
+						UAC:            key2,
 						Disabled:       true,
 					})
 					return []*datastore.Key{key, key2}
@@ -1026,37 +713,37 @@ var _ = Describe("GetDisabledUacs", func() {
 		})
 
 		It("returns an error", func() {
-			uacs, err := uacService.GetAllUacsDisabled(instrumentName)
+			uacs, err := uacService.GetAllDisabledUACs(context.Background(), instrumentName)
 			Expect(uacs).To(BeNil())
-			Expect(err).To(MatchError("Fewer case ids than uacs, must be duplicate case ids"))
+			Expect(err).To(MatchError("fewer case IDs than UACs: duplicate case IDs detected"))
 		})
 	})
 
-	Context("when there are no duplicate case ids", func() {
+	Context("when there are no duplicate case IDs", func() {
 		BeforeEach(func() {
-			mockDatastore = &mocks.Datastore{}
+			mockDatastore = &mocks.DatastoreInterface{}
 
-			uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+			uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 			mockDatastore.On("GetAll",
-				uacService.Context,
+				context.Background(),
 				mock.AnythingOfType("*datastore.Query"),
-				mock.AnythingOfType("*[]*uacgenerator.UacInfo"),
+				mock.AnythingOfType("*[]*uacgenerator.UACInfo"),
 			).Once().Return(
 				func(ctx context.Context, qry *datastore.Query, dst interface{}) []*datastore.Key {
-					uacInfos := dst.(*[]*uacgenerator.UacInfo)
-					key := uacService.UacKey("foobar")
-					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+					uacInfos := dst.(*[]*uacgenerator.UACInfo)
+					key := datastore.NameKey(uacService.UACKind, "foobar", nil)
+					*uacInfos = append(*uacInfos, &uacgenerator.UACInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "12343",
-						Uac:            key,
+						UAC:            key,
 						Disabled:       true,
 					})
-					key2 := uacService.UacKey("foobar2")
-					*uacInfos = append(*uacInfos, &uacgenerator.UacInfo{
+					key2 := datastore.NameKey(uacService.UACKind, "foobar2", nil)
+					*uacInfos = append(*uacInfos, &uacgenerator.UACInfo{
 						InstrumentName: instrumentName,
 						CaseID:         "56764",
-						Uac:            key2,
+						UAC:            key2,
 						Disabled:       true,
 					})
 					return []*datastore.Key{key, key2}
@@ -1066,8 +753,8 @@ var _ = Describe("GetDisabledUacs", func() {
 				})
 		})
 
-		It("returns a map of all uacs with info", func() {
-			uacs, err := uacService.GetAllUacsDisabled(instrumentName)
+		It("returns a map of all UACs with info", func() {
+			uacs, err := uacService.GetAllDisabledUACs(context.Background(), instrumentName)
 			Expect(uacs).To(HaveLen(2))
 			Expect(uacs["12343"].InstrumentName).To(Equal(instrumentName))
 			Expect(uacs["12343"].CaseID).To(Equal("12343"))
@@ -1080,19 +767,19 @@ var _ = Describe("GetDisabledUacs", func() {
 	})
 })
 
-var _ = Describe("EnableUac", func() {
+var _ = Describe("EnableUAC", func() {
 	var (
-		uacService  *uacgenerator.UacService
-		mockDatastore *mocks.Datastore
+		uacService    *uacgenerator.UACService
+		mockDatastore *mocks.DatastoreInterface
 		uac           string
 	)
 
 	BeforeEach(func() {
-		mockDatastore = &mocks.Datastore{}
-		uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+		mockDatastore = &mocks.DatastoreInterface{}
+		uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 		mockDatastore.On("Mutate",
-			uacService.Context,
+			context.Background(),
 			mock.AnythingOfType("*datastore.Mutation"),
 		).Return(nil, nil)
 	})
@@ -1101,7 +788,7 @@ var _ = Describe("EnableUac", func() {
 		uac = ""
 	})
 
-	Context("and UAC is enabled", func() {
+	Context("and the UAC is enabled", func() {
 		BeforeEach(func() {
 			uac = "123456789123"
 		})
@@ -1109,16 +796,16 @@ var _ = Describe("EnableUac", func() {
 		Context("and they have a Disabled attribute of false", func() {
 			BeforeEach(func() {
 				mockDatastore.On("Get",
-					uacService.Context,
+					context.Background(),
 					mock.AnythingOfType("*datastore.Key"),
-					mock.AnythingOfType("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*uacgenerator.UACInfo"),
 				).Times(1).Return(func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
-					uacInfo := dst.(*uacgenerator.UacInfo)
-					key := uacService.UacKey("123456789123")
-					*uacInfo = uacgenerator.UacInfo{
+					uacInfo := dst.(*uacgenerator.UACInfo)
+					key := datastore.NameKey(uacService.UACKind, "123456789123", nil)
+					*uacInfo = uacgenerator.UACInfo{
 						InstrumentName: "dst2108a",
 						CaseID:         "1234",
-						Uac:            key,
+						UAC:            key,
 						Disabled:       false,
 					}
 					return nil
@@ -1126,7 +813,7 @@ var _ = Describe("EnableUac", func() {
 			})
 
 			It("enables the UAC", func() {
-				err := uacService.EnableUac(uac)
+				err := uacService.EnableUAC(context.Background(), uac)
 				Expect(err).To(BeNil())
 				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 1)
 			})
@@ -1141,34 +828,34 @@ var _ = Describe("EnableUac", func() {
 		Context("and should return an error", func() {
 			BeforeEach(func() {
 				mockDatastore.On("Get",
-					uacService.Context,
+					context.Background(),
 					mock.AnythingOfType("*datastore.Key"),
-					mock.AnythingOfType("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*uacgenerator.UACInfo"),
 				).Return(datastore.ErrNoSuchEntity)
 			})
 
-			It("errors and doesn't disable anything", func() {
-				err := uacService.EnableUac(uac)
-				Expect(err).To(MatchError(`datastore: no such entity`))
+			It("errors and doesn't enable anything", func() {
+				err := uacService.EnableUAC(context.Background(), uac)
+				Expect(errors.Is(err, uacgenerator.ErrInvalidUAC)).To(BeTrue())
 				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
 			})
 		})
 	})
 })
 
-var _ = Describe("DisableUac", func() {
+var _ = Describe("DisableUAC", func() {
 	var (
-		uacService  *uacgenerator.UacService
-		mockDatastore *mocks.Datastore
+		uacService    *uacgenerator.UACService
+		mockDatastore *mocks.DatastoreInterface
 		uac           string
 	)
 
 	BeforeEach(func() {
-		mockDatastore = &mocks.Datastore{}
-		uacService = uacgenerator.NewUacService(mockDatastore, "uac")
+		mockDatastore = &mocks.DatastoreInterface{}
+		uacService = uacgenerator.NewUACService(mockDatastore, "uac")
 
 		mockDatastore.On("Mutate",
-			uacService.Context,
+			context.Background(),
 			mock.AnythingOfType("*datastore.Mutation"),
 		).Return(nil, nil)
 	})
@@ -1177,7 +864,7 @@ var _ = Describe("DisableUac", func() {
 		uac = ""
 	})
 
-	Context("and UAC is disabled", func() {
+	Context("and the UAC is disabled", func() {
 		BeforeEach(func() {
 			uac = "123456789123"
 		})
@@ -1185,16 +872,16 @@ var _ = Describe("DisableUac", func() {
 		Context("and they have a Disabled attribute of true", func() {
 			BeforeEach(func() {
 				mockDatastore.On("Get",
-					uacService.Context,
+					context.Background(),
 					mock.AnythingOfType("*datastore.Key"),
-					mock.AnythingOfType("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*uacgenerator.UACInfo"),
 				).Times(1).Return(func(ctx context.Context, keyQry *datastore.Key, dst interface{}) error {
-					uacInfo := dst.(*uacgenerator.UacInfo)
-					key := uacService.UacKey("123456789123")
-					*uacInfo = uacgenerator.UacInfo{
+					uacInfo := dst.(*uacgenerator.UACInfo)
+					key := datastore.NameKey(uacService.UACKind, "123456789123", nil)
+					*uacInfo = uacgenerator.UACInfo{
 						InstrumentName: "dst2108a",
 						CaseID:         "1234",
-						Uac:            key,
+						UAC:            key,
 						Disabled:       true,
 					}
 					return nil
@@ -1202,7 +889,7 @@ var _ = Describe("DisableUac", func() {
 			})
 
 			It("disables the UAC", func() {
-				err := uacService.DisableUac(uac)
+				err := uacService.DisableUAC(context.Background(), uac)
 				Expect(err).To(BeNil())
 				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 1)
 			})
@@ -1217,15 +904,15 @@ var _ = Describe("DisableUac", func() {
 		Context("and should return an error", func() {
 			BeforeEach(func() {
 				mockDatastore.On("Get",
-					uacService.Context,
+					context.Background(),
 					mock.AnythingOfType("*datastore.Key"),
-					mock.AnythingOfType("*uacgenerator.UacInfo"),
+					mock.AnythingOfType("*uacgenerator.UACInfo"),
 				).Return(datastore.ErrNoSuchEntity)
 			})
 
 			It("errors and doesn't disable anything", func() {
-				err := uacService.DisableUac(uac)
-				Expect(err).To(MatchError(`datastore: no such entity`))
+				err := uacService.DisableUAC(context.Background(), uac)
+				Expect(errors.Is(err, uacgenerator.ErrInvalidUAC)).To(BeTrue())
 				mockDatastore.AssertNumberOfCalls(GinkgoT(), "Mutate", 0)
 			})
 		})

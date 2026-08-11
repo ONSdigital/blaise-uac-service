@@ -7,18 +7,20 @@ import (
 )
 
 type Server struct {
-	BlaiseRestApi blaiserestapi.BlaiseRestApiInterface
-	UacService  uacgenerator.UacServiceInterface
+	BlaiseRESTAPI blaiserestapi.BlaiseRESTAPIInterface
+	UACService    uacgenerator.UACServiceInterface
 }
 
 func (server *Server) SetupRouter() *gin.Engine {
-	httpRouter := gin.Default()
-	uacController := &UacController{
-		BlaiseRestApi: server.BlaiseRestApi,
-		UacService:  server.UacService,
+	httpRouter := gin.New()
+	// Use panic recovery explicitly; request logging is handled by platform/infrastructure.
+	httpRouter.Use(gin.Recovery())
+	uacController := &UACController{
+		BlaiseRESTAPI: server.BlaiseRESTAPI,
+		UACService:    server.UACService,
 	}
-	uacController.AddRoutes(httpRouter)
+	uacController.addRoutes(httpRouter)
 	healthController := &HealthController{}
-	healthController.AddRoutes(httpRouter)
+	healthController.addRoutes(httpRouter)
 	return httpRouter
 }

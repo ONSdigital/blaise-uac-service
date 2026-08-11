@@ -1,5 +1,7 @@
 package blaiserestapi
 
+//go:generate mockery
+
 import (
 	"encoding/json"
 	"fmt"
@@ -7,36 +9,34 @@ import (
 	"net/http"
 )
 
-const CAWIMODE = "CAWI"
+const CAWIMode = "CAWI"
 
-//Generate mocks by running "go generate ./..."
-//go:generate mockery --name BlaiseRestApiInterface
-type BlaiseRestApiInterface interface {
-	GetCaseIds(string) ([]string, error)
+type BlaiseRESTAPIInterface interface {
+	GetCaseIDs(string) ([]string, error)
 	GetInstrumentModes(string) (InstrumentModes, error)
 }
 
 type InstrumentModes []string
 
-type BlaiseRestApi struct {
-	BaseUrl    string
+type BlaiseRESTAPI struct {
+	BaseURL    string
 	Serverpark string
 	Client     *http.Client
 }
 
-func (blaiseRestApi *BlaiseRestApi) GetCaseIds(instrumentName string) ([]string, error) {
-	req, err := http.NewRequest("GET", blaiseRestApi.caseIdsUrl(instrumentName), nil)
+func (blaiseRESTAPI *BlaiseRESTAPI) GetCaseIDs(instrumentName string) ([]string, error) {
+	req, err := http.NewRequest(http.MethodGet, blaiseRESTAPI.caseIDsURL(instrumentName), nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Add("Accept", "application/json")
-	resp, err := blaiseRestApi.Client.Do(req)
+	resp, err := blaiseRESTAPI.Client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("Instrument not found")
+		return nil, ErrInstrumentNotFound
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -47,19 +47,19 @@ func (blaiseRestApi *BlaiseRestApi) GetCaseIds(instrumentName string) ([]string,
 	return caseIDs, err
 }
 
-func (blaiseRestApi *BlaiseRestApi) GetInstrumentModes(instrumentName string) (InstrumentModes, error) {
-	req, err := http.NewRequest("GET", blaiseRestApi.instrumentModeUrl(instrumentName), nil)
+func (blaiseRESTAPI *BlaiseRESTAPI) GetInstrumentModes(instrumentName string) (InstrumentModes, error) {
+	req, err := http.NewRequest(http.MethodGet, blaiseRESTAPI.instrumentModeURL(instrumentName), nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Add("Accept", "application/json")
-	resp, err := blaiseRestApi.Client.Do(req)
+	resp, err := blaiseRESTAPI.Client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("Instrument not found")
+		return nil, ErrInstrumentNotFound
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -70,27 +70,27 @@ func (blaiseRestApi *BlaiseRestApi) GetInstrumentModes(instrumentName string) (I
 	return instrumentModes, err
 }
 
-func (blaiseRestApi *BlaiseRestApi) caseIdsUrl(instrumentName string) string {
+func (blaiseRESTAPI *BlaiseRESTAPI) caseIDsURL(instrumentName string) string {
 	return fmt.Sprintf(
 		"%s/api/v2/serverparks/%s/questionnaires/%s/cases/ids",
-		blaiseRestApi.BaseUrl,
-		blaiseRestApi.Serverpark,
+		blaiseRESTAPI.BaseURL,
+		blaiseRESTAPI.Serverpark,
 		instrumentName,
 	)
 }
 
-func (blaiseRestApi *BlaiseRestApi) instrumentModeUrl(instrumentName string) string {
+func (blaiseRESTAPI *BlaiseRESTAPI) instrumentModeURL(instrumentName string) string {
 	return fmt.Sprintf(
 		"%s/api/v2/serverparks/%s/questionnaires/%s/modes",
-		blaiseRestApi.BaseUrl,
-		blaiseRestApi.Serverpark,
+		blaiseRESTAPI.BaseURL,
+		blaiseRESTAPI.Serverpark,
 		instrumentName,
 	)
 }
 
-func (instrumentModes InstrumentModes) HasCawi() bool {
+func (instrumentModes InstrumentModes) HasCAWI() bool {
 	for _, mode := range instrumentModes {
-		if mode == CAWIMODE {
+		if mode == CAWIMode {
 			return true
 		}
 	}

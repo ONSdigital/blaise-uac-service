@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"cloud.google.com/go/datastore"
 	"github.com/ONSDigital/blaise-uac-service/blaiserestapi"
@@ -16,39 +17,39 @@ import (
 type Config struct {
 	Serverpark       string `default:"gusty"`
 	DatastoreProject string `required:"true" split_words:"true"`
-	BlaiseBaseUrl    string `required:"true" split_words:"true"`
+	BlaiseBaseURL    string `required:"true" split_words:"true"`
 	Port             string `default:"8082"`
-	UacKind          string `default:"uac" split_words:"true"`
+	UACKind          string `required:"true" split_words:"true" envconfig:"UAC_KIND"`
 }
 
 func main() {
 	var config Config
 	err := envconfig.Process("", &config)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal(err)
 	}
 
 	ctx := context.Background()
 	datastoreClient, err := datastore.NewClient(ctx, config.DatastoreProject)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal(err)
 	}
 
-	blaiseRestAPI := &blaiserestapi.BlaiseRestApi{
+	blaiseRESTAPI := &blaiserestapi.BlaiseRESTAPI{
 		Serverpark: config.Serverpark,
-		BaseUrl:    config.BlaiseBaseUrl,
-		Client:     &http.Client{},
+		BaseURL:    config.BlaiseBaseURL,
+		Client:     &http.Client{Timeout: 3 * time.Minute},
 	}
-	uacService := uacgenerator.NewUacService(datastoreClient, config.UacKind)
+	uacService := uacgenerator.NewUACService(datastoreClient, config.UACKind)
 
 	server := &webserver.Server{
-		BlaiseRestApi: blaiseRestAPI,
-		UacService:  uacService,
+		BlaiseRESTAPI: blaiseRESTAPI,
+		UACService:    uacService,
 	}
 
 	httpRouter := server.SetupRouter()
 	err = httpRouter.Run(fmt.Sprintf(":%s", config.Port))
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal(err)
 	}
 }

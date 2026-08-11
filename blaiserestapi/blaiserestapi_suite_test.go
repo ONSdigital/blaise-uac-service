@@ -9,5 +9,5 @@ import (
 
 func TestBlaiserestapi(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Blaiserestapi Suite")
+	RunSpecs(t, "BlaiseRESTAPI Suite")
 }

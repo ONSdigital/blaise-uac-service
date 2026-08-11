@@ -1,30 +1,37 @@
 package uacgenerator
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
 
+var ErrNotFound = errors.New("not found")
+var ErrInvalidUAC = errors.New("invalid uac")
+var ErrBlankCaseID = errors.New("cannot generate UACs for blank case IDs")
+var ErrCouldNotGenerateUniqueUAC = fmt.Errorf("could not generate a unique UAC in %d attempts", maxUACAttempts)
+var ErrInvalidUACKind = errors.New("cannot generate UACs for invalid UAC kind")
+
 type ImportError struct {
-	InvalidUacs    []string
-	InstrumentUacs []string
+	InvalidUACs    []string
+	InstrumentUACs []string
 }
 
 func (importError *ImportError) Error() string {
 	var err string
-	if len(importError.InvalidUacs) > 0 {
-		err = fmt.Sprintf("Cannot import UACs because some were invalid: [%s]", formatSlice(importError.InvalidUacs))
+	if len(importError.InvalidUACs) > 0 {
+		err = fmt.Sprintf("Cannot import UACs because some were invalid: [%s]", formatSlice(importError.InvalidUACs))
 	}
-	if len(importError.InstrumentUacs) > 0 {
+	if len(importError.InstrumentUACs) > 0 {
 		if err == "" {
 			err = fmt.Sprintf(
 				"Cannot import UACs because some were already in use by questionnaires: [%s]",
-				formatSlice(importError.InstrumentUacs),
+				formatSlice(importError.InstrumentUACs),
 			)
 		} else {
 			err = fmt.Sprintf(
 				"%s and some UACs were already in use by questionnaires: [%s]",
-				err, formatSlice(importError.InstrumentUacs),
+				err, formatSlice(importError.InstrumentUACs),
 			)
 
 		}
@@ -32,8 +39,8 @@ func (importError *ImportError) Error() string {
 	return err
 }
 
-func (importError *ImportError) HasErrors() bool {
-	return len(importError.InvalidUacs) > 0 || len(importError.InstrumentUacs) > 0
+func (importError *ImportError) hasErrors() bool {
+	return len(importError.InvalidUACs) > 0 || len(importError.InstrumentUACs) > 0
 }
 
 func formatSlice(input []string) string {

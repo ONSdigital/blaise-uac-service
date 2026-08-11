@@ -5,6 +5,8 @@ env_variables:
   DATASTORE_PROJECT: _DATASTORE_PROJECT
   BLAISE_BASE_URL: _BLAISE_BASE_URL
   SERVERPARK: _SERVERPARK
+  # Explicitly pin UAC generation to the 12-digit format.
+  UAC_KIND: uac
   GIN_MODE: release
 
 vpc_access_connector:

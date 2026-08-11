@@ -3,11 +3,9 @@ package webserver_test
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 
-	"cloud.google.com/go/datastore"
 	"github.com/ONSDigital/blaise-uac-service/blaiserestapi"
 	"github.com/ONSDigital/blaise-uac-service/uacgenerator"
 	"github.com/ONSDigital/blaise-uac-service/webserver"
@@ -20,24 +18,21 @@ import (
 	mockuacgenerator "github.com/ONSDigital/blaise-uac-service/uacgenerator/mocks"
 )
 
-var _ = Describe("UAC Controller", func() {
+var _ = Describe("UAC controller", func() {
 	var (
 		httpRouter        *gin.Engine
-		mockBlaiseRestApi = &mockblaiserestapi.BlaiseRestApiInterface{}
-		mockUacService  = &mockuacgenerator.UacServiceInterface{}
-		uacController     = &webserver.UacController{UacService: mockUacService, BlaiseRestApi: mockBlaiseRestApi}
+		mockBlaiseRESTAPI = &mockblaiserestapi.BlaiseRESTAPIInterface{}
+		mockUACService    = &mockuacgenerator.UACServiceInterface{}
 	)
 
 	BeforeEach(func() {
-		httpRouter = gin.Default()
-		uacController.AddRoutes(httpRouter)
+		server := &webserver.Server{UACService: mockUACService, BlaiseRESTAPI: mockBlaiseRESTAPI}
+		httpRouter = server.SetupRouter()
 	})
 
 	AfterEach(func() {
-		mockBlaiseRestApi = &mockblaiserestapi.BlaiseRestApiInterface{}
-		mockUacService = &mockuacgenerator.UacServiceInterface{}
-		uacController.UacService = mockUacService
-		uacController.BlaiseRestApi = mockBlaiseRestApi
+		mockBlaiseRESTAPI = &mockblaiserestapi.BlaiseRESTAPIInterface{}
+		mockUACService = &mockuacgenerator.UACServiceInterface{}
 	})
 
 	Describe("POST /uacs/instrument/:instrumentName", func() {
@@ -53,18 +48,18 @@ var _ = Describe("UAC Controller", func() {
 
 		Context("when the instrument does not exist", func() {
 			BeforeEach(func() {
-				mockBlaiseRestApi.On("GetInstrumentModes", "test123").Return(blaiserestapi.InstrumentModes{}, fmt.Errorf("Instrument not found"))
+				mockBlaiseRESTAPI.On("GetInstrumentModes", "test123").Return(blaiserestapi.InstrumentModes{}, blaiserestapi.ErrInstrumentNotFound)
 			})
 
 			It("returns a http 400 error", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
-				Expect(httpRecorder.Body.String()).To(Equal(`{"error":"Instrument not found"}`))
+				Expect(httpRecorder.Body.String()).To(Equal(`{"error":"instrument not found"}`))
 			})
 		})
 
 		Context("when the instrument does not have a CAWI mode", func() {
 			BeforeEach(func() {
-				mockBlaiseRestApi.On("GetInstrumentModes", "test123").Return(blaiserestapi.InstrumentModes{}, nil)
+				mockBlaiseRESTAPI.On("GetInstrumentModes", "test123").Return(blaiserestapi.InstrumentModes{}, nil)
 			})
 
 			It("returns a http 400 error", func() {
@@ -75,15 +70,15 @@ var _ = Describe("UAC Controller", func() {
 
 		Context("when the instrument has a CAWI mode", func() {
 			BeforeEach(func() {
-				mockBlaiseRestApi.On("GetInstrumentModes", "test123").Return(blaiserestapi.InstrumentModes{"CAWI"}, nil)
+				mockBlaiseRESTAPI.On("GetInstrumentModes", "test123").Return(blaiserestapi.InstrumentModes{"CAWI"}, nil)
 
-				mockUacService.On("Generate", "test123", []string{"12345"}).Return(nil)
+				mockUACService.On("Generate", mock.Anything, "test123", []string{"12345"}).Return(nil)
 			})
 
 			Context("when the instrument does exist when getting case ids", func() {
 				BeforeEach(func() {
-					mockBlaiseRestApi.On("GetCaseIds", "test123").Return([]string{"12345"}, nil)
-					mockUacService.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{
+					mockBlaiseRESTAPI.On("GetCaseIDs", "test123").Return([]string{"12345"}, nil)
+					mockUACService.On("GetAllUACs", mock.Anything, "test123").Return(uacgenerator.UACs{
 						"125634896985": {
 							InstrumentName: "test123",
 							CaseID:         "12452",
@@ -91,7 +86,7 @@ var _ = Describe("UAC Controller", func() {
 					}, nil)
 				})
 
-				It("generates and return a bunch of UACs", func() {
+				It("generates and returns UACs for the instrument", func() {
 					Expect(httpRecorder.Code).To(Equal(http.StatusOK))
 					Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"},"disabled":false}}`))
 				})
@@ -99,12 +94,12 @@ var _ = Describe("UAC Controller", func() {
 
 			Context("when the instrument does not exist when getting case ids", func() {
 				BeforeEach(func() {
-					mockBlaiseRestApi.On("GetCaseIds", "test123").Return(nil, fmt.Errorf("Instrument not found"))
+					mockBlaiseRESTAPI.On("GetCaseIDs", "test123").Return(nil, blaiserestapi.ErrInstrumentNotFound)
 				})
 
 				It("returns a http 400 error", func() {
 					Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
-					Expect(httpRecorder.Body.String()).To(Equal(`{"error":"Instrument not found"}`))
+					Expect(httpRecorder.Body.String()).To(Equal(`{"error":"instrument not found"}`))
 				})
 			})
 		})
@@ -121,9 +116,9 @@ var _ = Describe("UAC Controller", func() {
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
-		Context("When the instrument has UACs", func() {
+		Context("when the instrument has UACs", func() {
 			BeforeEach(func() {
-				mockUacService.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{
+				mockUACService.On("GetAllUACs", mock.Anything, "test123").Return(uacgenerator.UACs{
 					"125634896985": {
 						InstrumentName: "test123",
 						CaseID:         "12452",
@@ -135,18 +130,18 @@ var _ = Describe("UAC Controller", func() {
 				}, nil)
 			})
 
-			It("Gets all UACs for an installed instrument", func() {
+			It("returns all UACs for the instrument", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusOK))
 				Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"},"disabled":false},"78945612309":{"instrument_name":"test123","case_id":"65858","uac_chunks":{"uac1":"7894","uac2":"5612","uac3":"309"},"disabled":false}}`))
 			})
 		})
 
-		Context("When the instrument has UacInfo held against it", func() {
+		Context("when the instrument has no UACs", func() {
 			BeforeEach(func() {
-				mockUacService.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{}, nil)
+				mockUACService.On("GetAllUACs", mock.Anything, "test123").Return(uacgenerator.UACs{}, nil)
 			})
 
-			It("Returns an empty list with status code of Ok", func() {
+			It("returns an empty response", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusOK))
 				Expect(httpRecorder.Body.String()).To(Equal(`{}`))
 			})
@@ -165,27 +160,27 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacService.On("GetAllUacsByCaseID", "test123").Return(uacgenerator.Uacs{
+			mockUACService.On("GetAllUACsByCaseID", mock.Anything, "test123").Return(uacgenerator.UACs{
 				"12452": {
 					InstrumentName: "test123",
 					CaseID:         "12452",
-					FullUac:        "125634896985",
+					FullUAC:        "125634896985",
 				},
 				"65858": {
 					InstrumentName: "test123",
 					CaseID:         "65858",
-					FullUac:        "78945612309",
+					FullUAC:        "78945612309",
 				},
 			}, nil)
 		})
 
-		It("Gets all UACs for an installed instrument", func() {
+		It("returns all UACs keyed by case ID", func() {
 			Expect(httpRecorder.Code).To(Equal(http.StatusOK))
 			Expect(httpRecorder.Body.String()).To(Equal(`{"12452":{"instrument_name":"test123","case_id":"12452","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"},"full_uac":"125634896985","disabled":false},"65858":{"instrument_name":"test123","case_id":"65858","uac_chunks":{"uac1":"7894","uac2":"5612","uac3":"309"},"full_uac":"78945612309","disabled":false}}`))
 		})
 	})
 
-	Describe("/uacs/instrument/:instrumentName/count", func() {
+	Describe("GET /uacs/instrument/:instrumentName/count", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 		)
@@ -197,16 +192,16 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacService.On("GetUacCount", "test123").Return(20, nil)
+			mockUACService.On("GetUACCount", mock.Anything, "test123").Return(20, nil)
 		})
 
-		It("Returns a number of uacs with a status Ok", func() {
+		It("returns the UAC count", func() {
 			Expect(httpRecorder.Code).To(Equal(http.StatusOK))
 			Expect(httpRecorder.Body.String()).To(Equal(`{"count":20}`))
 		})
 	})
 
-	Describe("/uacs/instruments", func() {
+	Describe("GET /uacs/instruments", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 		)
@@ -218,10 +213,10 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacService.On("GetInstruments").Return([]string{"foo", "bar"}, nil)
+			mockUACService.On("GetInstruments", mock.Anything).Return([]string{"foo", "bar"}, nil)
 		})
 
-		It("Returns instrument_names with a status Ok", func() {
+		It("returns the instrument names", func() {
 			Expect(httpRecorder.Code).To(Equal(http.StatusOK))
 			Expect(httpRecorder.Body.String()).To(Equal(`["foo","bar"]`))
 		})
@@ -241,8 +236,8 @@ var _ = Describe("UAC Controller", func() {
 			})
 
 			BeforeEach(func() {
-				mockUacService.On("Generate", "test123", []string{"123", "456", "789"}).Return(nil)
-				mockUacService.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{
+				mockUACService.On("Generate", mock.Anything, "test123", []string{"123", "456", "789"}).Return(nil)
+				mockUACService.On("GetAllUACs", mock.Anything, "test123").Return(uacgenerator.UACs{
 					"125634896985": {
 						InstrumentName: "test123",
 						CaseID:         "12452",
@@ -250,7 +245,7 @@ var _ = Describe("UAC Controller", func() {
 				}, nil)
 			})
 
-			It("generates and return a bunch of UACs", func() {
+			It("generates and returns the UACs", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusOK))
 				Expect(httpRecorder.Body.String()).To(Equal(`{"125634896985":{"instrument_name":"test123","case_id":"12452","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"},"disabled":false}}`))
 			})
@@ -265,11 +260,11 @@ var _ = Describe("UAC Controller", func() {
 			})
 
 			BeforeEach(func() {
-				mockUacService.On("Generate", "test123", []string(nil)).Return(nil)
-				mockUacService.On("GetAllUacs", "test123").Return(uacgenerator.Uacs{}, nil)
+				mockUACService.On("Generate", mock.Anything, "test123", []string(nil)).Return(nil)
+				mockUACService.On("GetAllUACs", mock.Anything, "test123").Return(uacgenerator.UACs{}, nil)
 			})
 
-			It("generated nothing, and returns as such", func() {
+			It("returns an empty response", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusOK))
 				Expect(httpRecorder.Body.String()).To(Equal(`{}`))
 			})
@@ -283,76 +278,65 @@ var _ = Describe("UAC Controller", func() {
 				httpRouter.ServeHTTP(httpRecorder, req)
 			})
 
-			It("generates and return a bunch of UACs", func() {
+			It("returns a bad request error", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
 				Expect(httpRecorder.Body.String()).To(Equal(`{"error":"Must provide instrument name"}`))
 			})
 		})
+
+		Context("when the request body is malformed JSON", func() {
+			JustBeforeEach(func() {
+				requestBody := `{"instrument_name": "test123",`
+				httpRecorder = httptest.NewRecorder()
+				req, _ := http.NewRequest("POST", "/uacs/generate", bytes.NewBufferString(requestBody))
+				httpRouter.ServeHTTP(httpRecorder, req)
+			})
+
+			It("returns a bad request before generation is attempted", func() {
+				Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
+				mockUACService.AssertNotCalled(GinkgoT(), "Generate", mock.Anything, mock.Anything, mock.Anything)
+			})
+		})
 	})
 
-	Describe("/uacs/uac", func() {
+	Describe("GET /uacs/uac/:uac", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
-			requestBody  io.Reader
 		)
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("POST", "/uacs/uac", requestBody)
+			req, _ := http.NewRequest("GET", "/uacs/uac/98765432101", nil)
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
-		Context("A valid UAC returns UacInfo for that code", func() {
+		Context("when the UAC is valid", func() {
 			BeforeEach(func() {
-				requestBody = bytes.NewReader([]byte(`{"uac":"98765432101"}`))
-				mockUacService.On("GetUacInfo", "98765432101").Return(&uacgenerator.UacInfo{
+				mockUACService.On("GetUACInfo", mock.Anything, "98765432101").Return(&uacgenerator.UACInfo{
 					InstrumentName: "test123",
 					CaseID:         "12452",
 				}, nil)
 			})
 
-			It("Gets UacInfo for a valid UAC", func() {
+			It("returns the UAC info", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusOK))
 				Expect(httpRecorder.Body.String()).To(Equal(`{"instrument_name":"test123","case_id":"12452","disabled":false}`))
 			})
 		})
 
-		Context("Returns bad request if no body is posted", func() {
+		Context("when the UAC does not exist", func() {
 			BeforeEach(func() {
-				requestBody = bytes.NewReader([]byte(``))
+				mockUACService.On("GetUACInfo", mock.Anything, "98765432101").Return(nil, uacgenerator.ErrNotFound)
 			})
 
-			It("Returns an empty body and a bad request status", func() {
-				Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
-				Expect(httpRecorder.Body.String()).To(Equal("null"))
-			})
-		})
-
-		Context("Returns bad request if no body is invalid JSON", func() {
-			BeforeEach(func() {
-				requestBody = bytes.NewReader([]byte(`{"blah":Blah}`))
-			})
-
-			It("Returns an empty body and a bad request status", func() {
-				Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
-				Expect(httpRecorder.Body.String()).To(Equal("null"))
-			})
-		})
-
-		Context("Returns not found if the UAC does not exist", func() {
-			BeforeEach(func() {
-				requestBody = bytes.NewReader([]byte(`{"uac":"98765432101"}`))
-				mockUacService.On("GetUacInfo", "98765432101").Return(nil, datastore.ErrNoSuchEntity)
-			})
-
-			It("Returns an empty body and a not found status", func() {
+			It("returns a not found status", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusNotFound))
-				Expect(httpRecorder.Body.String()).To(Equal("null"))
+				Expect(httpRecorder.Body.String()).To(Equal(`{"error":"not found"}`))
 			})
 		})
 	})
 
-	Describe("POST /import", func() {
+	Describe("POST /uacs/import", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 			requestBody  string
@@ -370,7 +354,7 @@ var _ = Describe("UAC Controller", func() {
 
 		Context("and importing the UACs is successful", func() {
 			BeforeEach(func() {
-				mockUacService.On("ImportUacs", mock.AnythingOfType("[]string")).Return(3, nil)
+				mockUACService.On("ImportUACs", mock.Anything, mock.AnythingOfType("[]string")).Return(3, nil)
 			})
 
 			It("imports all of the UACs", func() {
@@ -382,8 +366,8 @@ var _ = Describe("UAC Controller", func() {
 		Context("and importing the UACs errors", func() {
 			Context("and the error is an import error", func() {
 				BeforeEach(func() {
-					mockUacService.On("ImportUacs", mock.AnythingOfType("[]string")).
-						Return(0, &uacgenerator.ImportError{InvalidUacs: []string{"foobar"}})
+					mockUACService.On("ImportUACs", mock.Anything, mock.AnythingOfType("[]string")).
+						Return(0, &uacgenerator.ImportError{InvalidUACs: []string{"foobar"}})
 				})
 
 				It("errors and doesn't import anything", func() {
@@ -392,9 +376,21 @@ var _ = Describe("UAC Controller", func() {
 				})
 			})
 
+			Context("and the error wraps an import error", func() {
+				BeforeEach(func() {
+					wrappedErr := fmt.Errorf("wrapped import error: %w", &uacgenerator.ImportError{InvalidUACs: []string{"foobar"}})
+					mockUACService.On("ImportUACs", mock.Anything, mock.AnythingOfType("[]string")).Return(0, wrappedErr)
+				})
+
+				It("returns a bad request", func() {
+					Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
+					Expect(httpRecorder.Body.String()).To(Equal(`{"error":"wrapped import error: Cannot import UACs because some were invalid: [\"foobar\"]"}`))
+				})
+			})
+
 			Context("and the error is any other error", func() {
 				BeforeEach(func() {
-					mockUacService.On("ImportUacs", mock.AnythingOfType("[]string")).Return(0, fmt.Errorf("invalid uac"))
+					mockUACService.On("ImportUACs", mock.Anything, mock.AnythingOfType("[]string")).Return(0, fmt.Errorf("invalid uac"))
 				})
 
 				It("errors and doesn't import anything", func() {
@@ -405,12 +401,12 @@ var _ = Describe("UAC Controller", func() {
 
 		Context("and the request body is malformed JSON", func() {
 			BeforeEach(func() {
-				requestBody = `["123456789123",` 
+				requestBody = `["123456789123",`
 			})
 
-			It("returns an internal server error before import is attempted", func() {
-				Expect(httpRecorder.Code).To(Equal(http.StatusInternalServerError))
-				mockUacService.AssertNotCalled(GinkgoT(), "ImportUacs", mock.Anything)
+			It("returns a bad request before import is attempted", func() {
+				Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
+				mockUACService.AssertNotCalled(GinkgoT(), "ImportUACs", mock.Anything)
 			})
 		})
 	})
@@ -428,7 +424,7 @@ var _ = Describe("UAC Controller", func() {
 
 		Context("when deletion succeeds", func() {
 			BeforeEach(func() {
-				mockUacService.On("AdminDelete", "test123").Return(nil)
+				mockUACService.On("AdminDelete", mock.Anything, "test123").Return(nil)
 			})
 
 			It("returns no content", func() {
@@ -439,45 +435,45 @@ var _ = Describe("UAC Controller", func() {
 
 		Context("when deletion fails", func() {
 			BeforeEach(func() {
-				mockUacService.On("AdminDelete", "test123").Return(fmt.Errorf("delete failed"))
+				mockUACService.On("AdminDelete", mock.Anything, "test123").Return(fmt.Errorf("delete failed"))
 			})
 
 			It("returns an internal server error", func() {
 				Expect(httpRecorder.Code).To(Equal(http.StatusInternalServerError))
-				Expect(httpRecorder.Body.String()).To(Equal("null"))
+				Expect(httpRecorder.Body.String()).To(Equal(`{"error":"delete failed"}`))
 			})
 		})
 	})
 
-	Describe("GET /uacs/uac/:instrumentName/disabled", func() {
+	Describe("GET /uacs/instrument/:instrumentName/disabled", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 		)
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("GET", "/uacs/uac/test123/disabled", nil)
+			req, _ := http.NewRequest("GET", "/uacs/instrument/test123/disabled", nil)
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
 		BeforeEach(func() {
-			mockUacService.On("GetAllUacsDisabled", "test123").Return(uacgenerator.Uacs{
+			mockUACService.On("GetAllDisabledUACs", mock.Anything, "test123").Return(uacgenerator.UACs{
 				"12452": {
 					InstrumentName: "test123",
 					CaseID:         "12452",
-					FullUac:        "125634896985",
+					FullUAC:        "125634896985",
 					Disabled:       true,
 				},
 				"65858": {
 					InstrumentName: "test123",
 					CaseID:         "65858",
-					FullUac:        "78945612309",
+					FullUAC:        "78945612309",
 					Disabled:       true,
 				},
 			}, nil)
 		})
 
-		It("Gets all UACs for an installed instrument that are disabled", func() {
+		It("returns all disabled UACs for the instrument", func() {
 			Expect(httpRecorder.Code).To(Equal(http.StatusOK))
 			Expect(httpRecorder.Body.String()).To(Equal(`{"12452":{"instrument_name":"test123","case_id":"12452","uac_chunks":{"uac1":"1256","uac2":"3489","uac3":"6985"},"full_uac":"125634896985","disabled":true},"65858":{"instrument_name":"test123","case_id":"65858","uac_chunks":{"uac1":"7894","uac2":"5612","uac3":"309"},"full_uac":"78945612309","disabled":true}}`))
 		})
@@ -495,11 +491,11 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacService.On("DisableUac", "123456789").Return(nil)
+			mockUACService.On("DisableUAC", mock.Anything, "123456789").Return(nil)
 		})
 
-		It("Sets the Disabled flag to true", func() {
-			Expect(httpRecorder.Code).To(Equal(http.StatusOK))
+		It("sets the disabled flag to true", func() {
+			Expect(httpRecorder.Code).To(Equal(http.StatusNoContent))
 		})
 	})
 
@@ -515,11 +511,11 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacService.On("EnableUac", "87654321").Return(nil)
+			mockUACService.On("EnableUAC", mock.Anything, "87654321").Return(nil)
 		})
 
-		It("Sets the Disabled flag to false", func() {
-			Expect(httpRecorder.Code).To(Equal(http.StatusOK))
+		It("sets the disabled flag to false", func() {
+			Expect(httpRecorder.Code).To(Equal(http.StatusNoContent))
 		})
 	})
 
@@ -535,12 +531,33 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacService.On("EnableUac", "1234").Return(fmt.Errorf("invalid uac"))
+			mockUACService.On("EnableUAC", mock.Anything, "1234").Return(uacgenerator.ErrInvalidUAC)
 		})
 
 		It("returns a http 400 error", func() {
 			Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
 			Expect(httpRecorder.Body.String()).To(Equal(`{"error":"invalid uac"}`))
+		})
+	})
+
+	Describe("PATCH /uacs/enable/:uac when enabling fails unexpectedly", func() {
+		var (
+			httpRecorder *httptest.ResponseRecorder
+		)
+
+		JustBeforeEach(func() {
+			httpRecorder = httptest.NewRecorder()
+			req, _ := http.NewRequest("PATCH", "/uacs/uac/enable/1234", nil)
+			httpRouter.ServeHTTP(httpRecorder, req)
+		})
+
+		BeforeEach(func() {
+			mockUACService.On("EnableUAC", mock.Anything, "1234").Return(fmt.Errorf("boom"))
+		})
+
+		It("returns a http 500 error", func() {
+			Expect(httpRecorder.Code).To(Equal(http.StatusInternalServerError))
+			Expect(httpRecorder.Body.String()).To(Equal(`{"error":"boom"}`))
 		})
 	})
 
@@ -556,7 +573,7 @@ var _ = Describe("UAC Controller", func() {
 		})
 
 		BeforeEach(func() {
-			mockUacService.On("DisableUac", "1234").Return(fmt.Errorf("invalid uac"))
+			mockUACService.On("DisableUAC", mock.Anything, "1234").Return(uacgenerator.ErrInvalidUAC)
 		})
 
 		It("returns a http 400 error", func() {
@@ -565,24 +582,45 @@ var _ = Describe("UAC Controller", func() {
 		})
 	})
 
-	Describe("GET /uacs/uac/:instrumentName/disabled with a non existing instrumentName", func() {
+	Describe("PATCH /uacs/disable/:uac when disabling fails unexpectedly", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 		)
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("GET", "/uacs/uac/unknownInstrumentName/disabled", nil)
+			req, _ := http.NewRequest("PATCH", "/uacs/uac/disable/1234", nil)
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
 		BeforeEach(func() {
-			mockUacService.On("GetAllUacsDisabled", "unknownInstrumentName").Return(nil, fmt.Errorf("Instrument not found"))
+			mockUACService.On("DisableUAC", mock.Anything, "1234").Return(fmt.Errorf("boom"))
+		})
+
+		It("returns a http 500 error", func() {
+			Expect(httpRecorder.Code).To(Equal(http.StatusInternalServerError))
+			Expect(httpRecorder.Body.String()).To(Equal(`{"error":"boom"}`))
+		})
+	})
+
+	Describe("GET /uacs/instrument/:instrumentName/disabled with a non existing instrumentName", func() {
+		var (
+			httpRecorder *httptest.ResponseRecorder
+		)
+
+		JustBeforeEach(func() {
+			httpRecorder = httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/uacs/instrument/unknownInstrumentName/disabled", nil)
+			httpRouter.ServeHTTP(httpRecorder, req)
+		})
+
+		BeforeEach(func() {
+			mockUACService.On("GetAllDisabledUACs", mock.Anything, "unknownInstrumentName").Return(nil, blaiserestapi.ErrInstrumentNotFound)
 		})
 
 		It("returns a http 400 error", func() {
 			Expect(httpRecorder.Code).To(Equal(http.StatusBadRequest))
-			Expect(httpRecorder.Body.String()).To(Equal(`{"error":"Instrument not found"}`))
+			Expect(httpRecorder.Body.String()).To(Equal(`{"error":"instrument not found"}`))
 		})
 	})
 })
