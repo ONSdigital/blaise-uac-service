@@ -56,7 +56,7 @@ Generates UACs from a request body containing `instrument_name` and `case_ids`. 
 POST /uacs/uac
 ```
 
-Returns details for a single UAC. **POST is used intentionally** — a UAC is a respondent credential and must not appear in URLs, which are captured verbatim in infrastructure access logs (App Engine, load balancers, proxies) regardless of application-level logging configuration. The UAC is supplied in the request body:
+Returns details for a single UAC. **POST is used intentionally**. UAC must not appear in URL. The UAC is supplied in the request body:
 
 ```json
 { "uac": "<value>" }
@@ -92,7 +92,7 @@ Imports an array of pre-generated UAC strings. Use this when UACs have been gene
 POST /uacs/uac/disable
 ```
 
-Disables the specified UAC. **POST is used intentionally** for the same reason as `getUACInfo` — the UAC must not appear in the URL. Supply it in the request body:
+Disables the specified UAC. **POST is used intentionally**. UAC must not appear in URL. The UAC is supplied in the request body:
 
 ```json
 { "uac": "<value>" }
@@ -104,7 +104,7 @@ Disables the specified UAC. **POST is used intentionally** for the same reason a
 POST /uacs/uac/enable
 ```
 
-Enables the specified UAC. **POST is used intentionally** for the same reason as `getUACInfo` — the UAC must not appear in the URL. Supply it in the request body:
+Enables the specified UAC. **POST is used intentionally**. UAC must not appear in URL. The UAC is supplied in the request body:
 
 ```json
 { "uac": "<value>" }

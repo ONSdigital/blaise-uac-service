@@ -40,8 +40,9 @@ func (uacController *UACController) addRoutes(httpRouter *gin.Engine) {
 	uacsGroup.DELETE("/admin/instrument/:instrumentName", uacController.deleteInstrumentUACs)
 	uacsGroup.GET("/instruments", uacController.listInstruments)
 	uacsGroup.POST("/import", uacController.importUACs)
-	// POST (not PATCH) for the same reason: UAC stays in the body, out of access logs.
+	// POST (not PATCH) so the UAC is in the request body and never appears in server access logs.
 	uacsGroup.POST("/uac/disable", uacController.disableUAC)
+	// POST (not PATCH) so the UAC is in the request body and never appears in server access logs.
 	uacsGroup.POST("/uac/enable", uacController.enableUAC)
 	uacsGroup.GET("/instrument/:instrumentName/disabled", uacController.getAllDisabledUACs)
 }
