@@ -53,10 +53,14 @@ Generates UACs from a request body containing `instrument_name` and `case_ids`. 
 - `getUACInfo`
 
 ```http
-GET /uacs/uac/:uac
+POST /uacs/uac
 ```
 
-Returns details for a single UAC identified by the `uac` path parameter.
+Returns details for a single UAC. **POST is used intentionally** — a UAC is a respondent credential and must not appear in URLs, which are captured verbatim in infrastructure access logs (App Engine, load balancers, proxies) regardless of application-level logging configuration. The UAC is supplied in the request body:
+
+```json
+{ "uac": "<value>" }
+```
 
 - `deleteInstrumentUACs`
 
@@ -85,18 +89,26 @@ Imports an array of pre-generated UAC strings. Use this when UACs have been gene
 - `disableUAC`
 
 ```http
-PATCH /uacs/uac/disable/:uac
+POST /uacs/uac/disable
 ```
 
-Disables the specified UAC.
+Disables the specified UAC. **POST is used intentionally** for the same reason as `getUACInfo` — the UAC must not appear in the URL. Supply it in the request body:
+
+```json
+{ "uac": "<value>" }
+```
 
 - `enableUAC`
 
 ```http
-PATCH /uacs/uac/enable/:uac
+POST /uacs/uac/enable
 ```
 
-Enables the specified UAC.
+Enables the specified UAC. **POST is used intentionally** for the same reason as `getUACInfo` — the UAC must not appear in the URL. Supply it in the request body:
+
+```json
+{ "uac": "<value>" }
+```
 
 - `getAllDisabledUACs`
 

@@ -14,6 +14,10 @@ type ResponseError struct {
 	Error string `json:"error"`
 }
 
+type UACRequest struct {
+	UAC string `json:"uac"`
+}
+
 type UACGenerateRequest struct {
 	InstrumentName string   `json:"instrument_name"`
 	CaseIDs        []string `json:"case_ids"`
@@ -31,12 +35,14 @@ func (uacController *UACController) addRoutes(httpRouter *gin.Engine) {
 	uacsGroup.GET("/instrument/:instrumentName/bycaseid", uacController.getAllUACsByCaseID)
 	uacsGroup.GET("/instrument/:instrumentName/count", uacController.getUACCount)
 	uacsGroup.POST("/generate", uacController.generateUACs)
-	uacsGroup.GET("/uac/:uac", uacController.getUACInfo)
+	// POST (not GET) so the UAC is in the request body and never appears in server access logs.
+	uacsGroup.POST("/uac", uacController.getUACInfo)
 	uacsGroup.DELETE("/admin/instrument/:instrumentName", uacController.deleteInstrumentUACs)
 	uacsGroup.GET("/instruments", uacController.listInstruments)
 	uacsGroup.POST("/import", uacController.importUACs)
-	uacsGroup.PATCH("/uac/disable/:uac", uacController.disableUAC)
-	uacsGroup.PATCH("/uac/enable/:uac", uacController.enableUAC)
+	// POST (not PATCH) for the same reason: UAC stays in the body, out of access logs.
+	uacsGroup.POST("/uac/disable", uacController.disableUAC)
+	uacsGroup.POST("/uac/enable", uacController.enableUAC)
 	uacsGroup.GET("/instrument/:instrumentName/disabled", uacController.getAllDisabledUACs)
 }
 
@@ -140,7 +146,12 @@ func (uacController *UACController) getUACCount(context *gin.Context) {
 }
 
 func (uacController *UACController) getUACInfo(context *gin.Context) {
-	uac := context.Param("uac")
+	var req UACRequest
+	if err := context.ShouldBindJSON(&req); err != nil {
+		context.AbortWithStatusJSON(http.StatusBadRequest, ResponseError{Error: err.Error()})
+		return
+	}
+	uac := req.UAC
 
 	uacInfo, err := uacController.UACService.GetUACInfo(context.Request.Context(), uac)
 	if err != nil {
@@ -193,7 +204,12 @@ func (uacController *UACController) handleError(context *gin.Context, err error)
 }
 
 func (uacController *UACController) disableUAC(context *gin.Context) {
-	uac := context.Param("uac")
+	var req UACRequest
+	if err := context.ShouldBindJSON(&req); err != nil {
+		context.AbortWithStatusJSON(http.StatusBadRequest, ResponseError{Error: err.Error()})
+		return
+	}
+	uac := req.UAC
 
 	err := uacController.UACService.DisableUAC(context.Request.Context(), uac)
 	if err != nil {
@@ -208,7 +224,12 @@ func (uacController *UACController) disableUAC(context *gin.Context) {
 }
 
 func (uacController *UACController) enableUAC(context *gin.Context) {
-	uac := context.Param("uac")
+	var req UACRequest
+	if err := context.ShouldBindJSON(&req); err != nil {
+		context.AbortWithStatusJSON(http.StatusBadRequest, ResponseError{Error: err.Error()})
+		return
+	}
+	uac := req.UAC
 
 	err := uacController.UACService.EnableUAC(context.Request.Context(), uac)
 	if err != nil {

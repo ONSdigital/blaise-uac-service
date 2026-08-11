@@ -299,14 +299,14 @@ var _ = Describe("UAC controller", func() {
 		})
 	})
 
-	Describe("GET /uacs/uac/:uac", func() {
+	Describe("POST /uacs/uac", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 		)
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("GET", "/uacs/uac/98765432101", nil)
+			req, _ := http.NewRequest("POST", "/uacs/uac", bytes.NewBufferString(`{"uac":"98765432101"}`))
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
@@ -479,14 +479,14 @@ var _ = Describe("UAC controller", func() {
 		})
 	})
 
-	Describe("PATCH /uacs/disable/:uac", func() {
+	Describe("POST /uacs/uac/disable", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 		)
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("PATCH", "/uacs/uac/disable/123456789", nil)
+			req, _ := http.NewRequest("POST", "/uacs/uac/disable", bytes.NewBufferString(`{"uac":"123456789"}`))
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
@@ -499,14 +499,14 @@ var _ = Describe("UAC controller", func() {
 		})
 	})
 
-	Describe("PATCH /uacs/enable/:uac", func() {
+	Describe("POST /uacs/uac/enable", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 		)
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("PATCH", "/uacs/uac/enable/87654321", nil)
+			req, _ := http.NewRequest("POST", "/uacs/uac/enable", bytes.NewBufferString(`{"uac":"87654321"}`))
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
@@ -519,14 +519,14 @@ var _ = Describe("UAC controller", func() {
 		})
 	})
 
-	Describe("PATCH /uacs/enable/:uac with a non existing uac", func() {
+	Describe("POST /uacs/uac/enable with a non existing uac", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 		)
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("PATCH", "/uacs/uac/enable/1234", nil)
+			req, _ := http.NewRequest("POST", "/uacs/uac/enable", bytes.NewBufferString(`{"uac":"1234"}`))
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
@@ -540,14 +540,14 @@ var _ = Describe("UAC controller", func() {
 		})
 	})
 
-	Describe("PATCH /uacs/enable/:uac when enabling fails unexpectedly", func() {
+	Describe("POST /uacs/uac/enable when enabling fails unexpectedly", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 		)
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("PATCH", "/uacs/uac/enable/1234", nil)
+			req, _ := http.NewRequest("POST", "/uacs/uac/enable", bytes.NewBufferString(`{"uac":"1234"}`))
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
@@ -561,14 +561,14 @@ var _ = Describe("UAC controller", func() {
 		})
 	})
 
-	Describe("PATCH /uacs/disable/:uac with a non existing uac", func() {
+	Describe("POST /uacs/uac/disable with a non existing uac", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 		)
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("PATCH", "/uacs/uac/disable/1234", nil)
+			req, _ := http.NewRequest("POST", "/uacs/uac/disable", bytes.NewBufferString(`{"uac":"1234"}`))
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
@@ -582,14 +582,14 @@ var _ = Describe("UAC controller", func() {
 		})
 	})
 
-	Describe("PATCH /uacs/disable/:uac when disabling fails unexpectedly", func() {
+	Describe("POST /uacs/uac/disable when disabling fails unexpectedly", func() {
 		var (
 			httpRecorder *httptest.ResponseRecorder
 		)
 
 		JustBeforeEach(func() {
 			httpRecorder = httptest.NewRecorder()
-			req, _ := http.NewRequest("PATCH", "/uacs/uac/disable/1234", nil)
+			req, _ := http.NewRequest("POST", "/uacs/uac/disable", bytes.NewBufferString(`{"uac":"1234"}`))
 			httpRouter.ServeHTTP(httpRecorder, req)
 		})
 
