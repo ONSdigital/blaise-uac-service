@@ -36,20 +36,12 @@ func main() {
 
 	dsQuery := datastore.NewQuery("uac").FilterField("instrument_name", "=", oldInstrumentName)
 
-	dsIt := dsClient.Run(ctx, dsQuery)
-	dsItCount := *dsIt
-
-	for {
-		var entity dsEntityStruct
-		_, err := dsItCount.Next(&entity)
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
-		uacCount++
+	uacCount, err = dsClient.Count(ctx, dsQuery)
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	dsIt := dsClient.Run(ctx, dsQuery)
 
 	fmt.Println("Found", uacCount, "UACs for instrument name", oldInstrumentName)
 

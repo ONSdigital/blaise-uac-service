@@ -1,18 +1,19 @@
 package blaiserestapi_test
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/ONSDigital/blaise-uac-service/blaiserestapi"
 	"github.com/jarcoal/httpmock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Blaise rest api endpoints", func() {
+var _ = Describe("Blaise REST API", func() {
 	var (
-		restApiUrl     = "http://localhost"
+		restAPIURL     = "http://localhost"
 		serverpark     = "foobar"
 		instrumentName = "lolcats"
 		caseIDs        = []string{
@@ -23,8 +24,8 @@ var _ = Describe("Blaise rest api endpoints", func() {
 			"12344",
 			"12342",
 		}
-		blaiseRestApi = &blaiserestapi.BlaiseRestApi{
-			BaseUrl:    restApiUrl,
+		blaiseRESTAPI = &blaiserestapi.BlaiseRESTAPI{
+			BaseURL:    restAPIURL,
 			Serverpark: serverpark,
 			Client:     &http.Client{},
 		}
@@ -38,48 +39,48 @@ var _ = Describe("Blaise rest api endpoints", func() {
 		httpmock.DeactivateAndReset()
 	})
 
-	Describe("Get Case Ids", func() {
+	Describe("GetCaseIDs", func() {
 		Context("when an instrument does not exist", func() {
 			JustBeforeEach(func() {
-				httpmock.RegisterResponder("GET", fmt.Sprintf("%s/api/v2/serverparks/%s/questionnaires/%s/cases/ids", restApiUrl, serverpark, instrumentName),
+				httpmock.RegisterResponder("GET", fmt.Sprintf("%s/api/v2/serverparks/%s/questionnaires/%s/cases/ids", restAPIURL, serverpark, instrumentName),
 					httpmock.NewBytesResponder(404, []byte{}))
 			})
 
-			It("returns a NotFound error", func() {
-				recievedInstrumentModes, err := blaiseRestApi.GetCaseIds(instrumentName)
-				Expect(err).To(MatchError("Instrument not found"))
-				Expect(recievedInstrumentModes).To(BeNil())
+			It("returns a not found error", func() {
+				receivedInstrumentModes, err := blaiseRESTAPI.GetCaseIDs(instrumentName)
+				Expect(errors.Is(err, blaiserestapi.ErrInstrumentNotFound)).To(BeTrue())
+				Expect(receivedInstrumentModes).To(BeNil())
 			})
 		})
 
 		Context("when there are case IDs", func() {
 			JustBeforeEach(func() {
-				httpmock.RegisterResponder("GET", fmt.Sprintf("%s/api/v2/serverparks/%s/questionnaires/%s/cases/ids", restApiUrl, serverpark, instrumentName),
+				httpmock.RegisterResponder("GET", fmt.Sprintf("%s/api/v2/serverparks/%s/questionnaires/%s/cases/ids", restAPIURL, serverpark, instrumentName),
 					httpmock.NewJsonResponderOrPanic(200, caseIDs))
 			})
 
-			It("When I call the Blaise Rest Api Case Id end point, a list of Case Ids are returned", func() {
-				receivedCaseIds, err := blaiseRestApi.GetCaseIds(instrumentName)
+			It("returns the case IDs", func() {
+				receivedCaseIDs, err := blaiseRESTAPI.GetCaseIDs(instrumentName)
 				Expect(err).To(BeNil())
-				Expect(receivedCaseIds).To(Equal(caseIDs))
+				Expect(receivedCaseIDs).To(Equal(caseIDs))
 			})
 		})
 
 		Context("when there are no case IDs", func() {
 			JustBeforeEach(func() {
-				httpmock.RegisterResponder("GET", fmt.Sprintf("%s/api/v2/serverparks/%s/questionnaires/%s/cases/ids", restApiUrl, serverpark, instrumentName),
+				httpmock.RegisterResponder("GET", fmt.Sprintf("%s/api/v2/serverparks/%s/questionnaires/%s/cases/ids", restAPIURL, serverpark, instrumentName),
 					httpmock.NewJsonResponderOrPanic(200, []string{}))
 			})
 
-			It("When I call the Blaise Rest Api Case Id end point, a list of Case Ids are returned", func() {
-				receivedCaseIds, err := blaiseRestApi.GetCaseIds(instrumentName)
+			It("returns an empty list", func() {
+				receivedCaseIDs, err := blaiseRESTAPI.GetCaseIDs(instrumentName)
 				Expect(err).To(BeNil())
-				Expect(receivedCaseIds).To(BeEmpty())
+				Expect(receivedCaseIDs).To(BeEmpty())
 			})
 		})
 	})
 
-	Describe("Get a list of modes", func() {
+	Describe("GetInstrumentModes", func() {
 		var instrumentModes = blaiserestapi.InstrumentModes{
 			"CATI",
 			"CAWI",
@@ -88,34 +89,34 @@ var _ = Describe("Blaise rest api endpoints", func() {
 
 		Context("when an instrument does not exist", func() {
 			JustBeforeEach(func() {
-				httpmock.DefaultTransport.RegisterResponder("GET", fmt.Sprintf("%s/api/v2/serverparks/%s/questionnaires/%s/modes", restApiUrl, serverpark, instrumentName),
+				httpmock.RegisterResponder("GET", fmt.Sprintf("%s/api/v2/serverparks/%s/questionnaires/%s/modes", restAPIURL, serverpark, instrumentName),
 					httpmock.NewBytesResponder(404, []byte{}))
 			})
 
-			It("returns a NotFound error", func() {
-				recievedInstrumentModes, err := blaiseRestApi.GetInstrumentModes(instrumentName)
-				Expect(err).To(MatchError("Instrument not found"))
-				Expect(recievedInstrumentModes).To(BeNil())
+			It("returns a not found error", func() {
+				receivedInstrumentModes, err := blaiseRESTAPI.GetInstrumentModes(instrumentName)
+				Expect(errors.Is(err, blaiserestapi.ErrInstrumentNotFound)).To(BeTrue())
+				Expect(receivedInstrumentModes).To(BeNil())
 			})
 		})
 
 		Context("when an instrument has modes", func() {
 			JustBeforeEach(func() {
-				httpmock.DefaultTransport.RegisterResponder("GET", fmt.Sprintf("%s/api/v2/serverparks/%s/questionnaires/%s/modes", restApiUrl, serverpark, instrumentName),
+				httpmock.RegisterResponder("GET", fmt.Sprintf("%s/api/v2/serverparks/%s/questionnaires/%s/modes", restAPIURL, serverpark, instrumentName),
 					httpmock.NewJsonResponderOrPanic(200, instrumentModes))
 			})
 
-			It("When I call the Blaise Rest Api Modes end point, a list of modes are returned", func() {
-				recievedInstrumentModes, err := blaiseRestApi.GetInstrumentModes(instrumentName)
+			It("returns the instrument modes", func() {
+				receivedInstrumentModes, err := blaiseRESTAPI.GetInstrumentModes(instrumentName)
 				Expect(err).To(BeNil())
-				Expect(recievedInstrumentModes).To(Equal(instrumentModes))
+				Expect(receivedInstrumentModes).To(Equal(instrumentModes))
 			})
 		})
 	})
 })
 
 var _ = Describe("InstrumentModes", func() {
-	Describe("HasCawi", func() {
+	Describe("HasCAWI", func() {
 		Context("when the modes include CAWI", func() {
 			var instrumentModes = blaiserestapi.InstrumentModes{
 				"CATI",
@@ -124,7 +125,7 @@ var _ = Describe("InstrumentModes", func() {
 			}
 
 			It("returns true", func() {
-				Expect(instrumentModes.HasCawi()).To(BeTrue())
+				Expect(instrumentModes.HasCAWI()).To(BeTrue())
 			})
 		})
 
@@ -135,7 +136,7 @@ var _ = Describe("InstrumentModes", func() {
 			}
 
 			It("returns false", func() {
-				Expect(instrumentModes.HasCawi()).To(BeFalse())
+				Expect(instrumentModes.HasCAWI()).To(BeFalse())
 			})
 		})
 	})

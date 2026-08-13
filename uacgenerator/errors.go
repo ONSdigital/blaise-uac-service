@@ -1,9 +1,16 @@
 package uacgenerator
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
+
+var ErrNotFound = errors.New("not found")
+var ErrInvalidUAC = errors.New("invalid uac")
+var ErrBlankCaseID = errors.New("cannot generate UACs for blank case IDs")
+var ErrCouldNotGenerateUniqueUAC = fmt.Errorf("could not generate a unique UAC in %d attempts", maxUACAttempts)
+var ErrInvalidUACKind = errors.New("cannot generate UACs for invalid UAC kind")
 
 type ImportError struct {
 	InvalidUACs    []string
@@ -32,7 +39,7 @@ func (importError *ImportError) Error() string {
 	return err
 }
 
-func (importError *ImportError) HasErrors() bool {
+func (importError *ImportError) hasErrors() bool {
 	return len(importError.InvalidUACs) > 0 || len(importError.InstrumentUACs) > 0
 }
 
