@@ -1,0 +1,15 @@
+template: testify
+template-data:
+  unroll-variadic: true
+dir: "{{.InterfaceDir}}/mocks"
+filename: "{{.InterfaceName}}.go"
+pkgname: mocks
+structname: "{{.InterfaceName}}"
+packages:
+  github.com/ONSDigital/blaise-uac-service/blaiserestapi:
+    interfaces:
+      BlaiseRESTAPIInterface:
+  github.com/ONSDigital/blaise-uac-service/uacgenerator:
+    interfaces:
+      UACServiceInterface:
+      DatastoreInterface:

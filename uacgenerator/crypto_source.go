@@ -3,7 +3,6 @@ package uacgenerator
 import (
 	"crypto/rand"
 	"encoding/binary"
-	"log"
 )
 
 type cryptoSource struct{}
@@ -17,7 +16,8 @@ func (s cryptoSource) Int63() int64 {
 func (s cryptoSource) Uint64() (v uint64) {
 	err := binary.Read(rand.Reader, binary.BigEndian, &v)
 	if err != nil {
-		log.Fatal(err)
+		// crypto/rand failure is unrecoverable; panic so deferred cleanup can run
+		panic(err)
 	}
 	return v
 }
