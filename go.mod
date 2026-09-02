@@ -11,7 +11,7 @@ require (
 	github.com/onsi/gomega v1.42.1
 	github.com/stretchr/testify v1.11.1
 	github.com/zenthangplus/goccm v1.1.3
-	google.golang.org/grpc v1.83.0
+	google.golang.org/grpc v1.83.1
 )
 
 require (
